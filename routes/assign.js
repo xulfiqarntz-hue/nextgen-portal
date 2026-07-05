@@ -33,3 +33,21 @@ router.post('/assign', verifyToken, allowRoles('mainadmin', 'subadmin'), async (
 });
 
 module.exports = router;
+
+router.get('/my-students', require('../middleware/auth').verifyToken, require('../middleware/auth').allowRoles('teacher'), async (req, res) => {
+  try {
+    const teacher = await User.findById(req.user.id).populate('assignedStudents', 'name email');
+    res.json({ students: teacher.assignedStudents });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/my-teacher', require('../middleware/auth').verifyToken, require('../middleware/auth').allowRoles('student'), async (req, res) => {
+  try {
+    const student = await User.findById(req.user.id).populate('assignedTeacher', 'name email');
+    res.json({ teacher: student.assignedTeacher });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
