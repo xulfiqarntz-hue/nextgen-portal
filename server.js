@@ -1,3 +1,4 @@
+require('dotenv').config();
 require('node:dns/promises').setServers(['1.1.1.1', '8.8.8.8']);
 
 const express = require('express');
@@ -8,11 +9,9 @@ const assignRoutes = require('./routes/assign');
 const chatRoutes = require('./routes/chat');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-const dbURI = 'mongodb+srv://xulfiqarntz_db_user:RvfmgzSmMSqSZhCE@cluster0.xsyzeba.mongodb.net/nextgenportal?appName=Cluster0';
-
-mongoose.connect(dbURI)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected successfully!'))
   .catch((err) => console.log('MongoDB connection error:', err));
 
