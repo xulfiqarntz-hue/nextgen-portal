@@ -4,6 +4,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const assignRoutes = require('./routes/assign');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 const PORT = 3000;
@@ -17,6 +18,7 @@ mongoose.connect(dbURI)
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api', assignRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello Zulfiqar! Your server is working.');
