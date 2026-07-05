@@ -10,6 +10,11 @@
     button { background: #1a3c6e; color: white; border: none; cursor: pointer; }
     #logoutBtn { background: #b91c1c; margin-top: 20px; }
     #message { margin-top: 15px; text-align: center; }
+    hr { margin: 25px 0; border: none; border-top: 1px solid #ddd; }
+    #viewChatBox { margin-top: 10px; height: 220px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fafafa; }
+    .msg { padding: 8px 12px; margin: 6px 0; border-radius: 8px; max-width: 75%; clear: both; }
+    .fromStudent { background: #e5e7eb; color: #111; float: left; }
+    .fromTeacher { background: #1a3c6e; color: white; float: right; }
   </style>
 </head>
 <body>
@@ -25,6 +30,18 @@
 
     <button onclick="assign()">Assign</button>
     <p id="message"></p>
+
+    <hr>
+
+    <p>View a Student-Teacher Conversation (read-only):</p>
+    <label>Student:</label>
+    <select id="viewStudentSelect"></select>
+
+    <label>Teacher:</label>
+    <select id="viewTeacherSelect"></select>
+
+    <button onclick="viewChat()">View Chat</button>
+    <div id="viewChatBox"></div>
 
     <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
@@ -46,21 +63,22 @@
       });
       const data = await res.json();
 
-      const studentSelect = document.getElementById('studentSelect');
-      const teacherSelect = document.getElementById('teacherSelect');
-
-      data.students.forEach(function(s) {
-        const opt = document.createElement('option');
-        opt.value = s._id;
-        opt.innerText = s.name + ' (' + s.email + ')';
-        studentSelect.appendChild(opt);
+      [document.getElementById('studentSelect'), document.getElementById('viewStudentSelect')].forEach(function(sel) {
+        data.students.forEach(function(s) {
+          const opt = document.createElement('option');
+          opt.value = s._id;
+          opt.innerText = s.name + ' (' + s.email + ')';
+          sel.appendChild(opt);
+        });
       });
 
-      data.teachers.forEach(function(t) {
-        const opt = document.createElement('option');
-        opt.value = t._id;
-        opt.innerText = t.name + ' (' + t.email + ')';
-        teacherSelect.appendChild(opt);
+      [document.getElementById('teacherSelect'), document.getElementById('viewTeacherSelect')].forEach(function(sel) {
+        data.teachers.forEach(function(t) {
+          const opt = document.createElement('option');
+          opt.value = t._id;
+          opt.innerText = t.name + ' (' + t.email + ')';
+          sel.appendChild(opt);
+        });
       });
     }
 
@@ -79,6 +97,29 @@
 
       const data = await res.json();
       document.getElementById('message').innerText = data.message || data.error;
+    }
+
+    async function viewChat() {
+      const studentId = document.getElementById('viewStudentSelect').value;
+      const teacherId = document.getElementById('viewTeacherSelect').value;
+
+      const res = await fetch('/api/chat/view/' + studentId + '/' + teacherId, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const box = document.getElementById('viewChatBox');
+      box.innerHTML = '';
+
+      if (data.messages && data.messages.length > 0) {
+        data.messages.forEach(function(m) {
+          const div = document.createElement('div');
+          div.className = 'msg ' + (m.sender === studentId ? 'fromStudent' : 'fromTeacher');
+          div.innerText = m.text;
+          box.appendChild(div);
+        });
+      } else {
+        box.innerText = 'No messages between these two yet.';
+      }
     }
 
     function logout() {

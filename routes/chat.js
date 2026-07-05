@@ -1,6 +1,6 @@
 const express = require('express');
 const Message = require('../models/Message');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, allowRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -25,6 +25,20 @@ router.get('/conversation/:userId', verifyToken, async (req, res) => {
       $or: [
         { sender: req.user.id, receiver: req.params.userId },
         { sender: req.params.userId, receiver: req.user.id }
+      ]
+    }).sort({ createdAt: 1 });
+    res.json({ messages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/view/:studentId/:teacherId', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
+  try {
+    const messages = await Message.find({
+      $or: [
+        { sender: req.params.studentId, receiver: req.params.teacherId },
+        { sender: req.params.teacherId, receiver: req.params.studentId }
       ]
     }).sort({ createdAt: 1 });
     res.json({ messages });
