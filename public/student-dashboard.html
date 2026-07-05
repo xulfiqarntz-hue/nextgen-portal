@@ -6,22 +6,37 @@
     body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 30px; }
     .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
     h2 { color: #1a3c6e; }
-    #teacherInfo { margin-top: 15px; padding: 15px; background: #eaf1fb; border-radius: 8px; }
-    button { margin-top: 20px; padding: 10px 15px; background: #b91c1c; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #teacherInfo { margin-top: 10px; padding: 12px; background: #eaf1fb; border-radius: 8px; }
+    #chatBox { margin-top: 15px; height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fafafa; }
+    .msg { padding: 8px 12px; margin: 6px 0; border-radius: 8px; max-width: 75%; clear: both; }
+    .mine { background: #1a3c6e; color: white; float: right; }
+    .theirs { background: #e5e7eb; color: #111; float: left; }
+    .chatInputRow { display: flex; margin-top: 10px; clear: both; }
+    #chatInput { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    #sendBtn { padding: 10px 15px; margin-left: 8px; background: #1a3c6e; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #logoutBtn { margin-top: 20px; padding: 10px 15px; background: #b91c1c; color: white; border: none; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="card">
     <h2 id="welcome">Welcome</h2>
-    <p>Here is your assigned teacher:</p>
+    <p>Your teacher:</p>
     <div id="teacherInfo">Loading...</div>
-    <button onclick="logout()">Logout</button>
+
+    <div id="chatBox"></div>
+    <div class="chatInputRow">
+      <input type="text" id="chatInput" placeholder="Type a message...">
+      <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+
+    <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
 
   <script>
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
+    let teacherId = null;
 
     if (!token || role !== 'student') {
       window.location.href = '/login.html';
@@ -36,11 +51,50 @@
       const data = await res.json();
 
       if (data.teacher) {
+        teacherId = data.teacher._id;
         document.getElementById('teacherInfo').innerText =
           data.teacher.name + ' (' + data.teacher.email + ')';
+        loadMessages();
+        setInterval(loadMessages, 3000);
       } else {
         document.getElementById('teacherInfo').innerText = 'No teacher assigned yet.';
       }
+    }
+
+    async function loadMessages() {
+      if (!teacherId) return;
+      const res = await fetch('/api/chat/conversation/' + teacherId, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const box = document.getElementById('chatBox');
+      box.innerHTML = '';
+
+      data.messages.forEach(function(m) {
+        const div = document.createElement('div');
+        div.className = 'msg ' + (m.sender === teacherId ? 'theirs' : 'mine');
+        div.innerText = m.text;
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text || !teacherId) return;
+
+      await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ receiverId: teacherId, text })
+      });
+
+      input.value = '';
+      loadMessages();
     }
 
     function logout() {

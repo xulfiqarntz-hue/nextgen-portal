@@ -6,22 +6,43 @@
     body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 30px; }
     .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
     h2 { color: #1a3c6e; }
-    .student { padding: 12px; background: #eaf1fb; border-radius: 8px; margin-top: 10px; }
-    button { margin-top: 20px; padding: 10px 15px; background: #b91c1c; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    .student { padding: 10px; background: #eaf1fb; border-radius: 8px; margin-top: 8px; cursor: pointer; }
+    .student:hover { background: #dbe7fa; }
+    .student.active { background: #1a3c6e; color: white; }
+    #chatSection { margin-top: 15px; display: none; }
+    #chatBox { height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fafafa; }
+    .msg { padding: 8px 12px; margin: 6px 0; border-radius: 8px; max-width: 75%; clear: both; }
+    .mine { background: #1a3c6e; color: white; float: right; }
+    .theirs { background: #e5e7eb; color: #111; float: left; }
+    .chatInputRow { display: flex; margin-top: 10px; clear: both; }
+    #chatInput { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    #sendBtn { padding: 10px 15px; margin-left: 8px; background: #1a3c6e; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #logoutBtn { margin-top: 20px; padding: 10px 15px; background: #b91c1c; color: white; border: none; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="card">
     <h2 id="welcome">Welcome</h2>
-    <p>Your assigned students:</p>
+    <p>Your assigned students (click one to chat):</p>
     <div id="studentList">Loading...</div>
-    <button onclick="logout()">Logout</button>
+
+    <div id="chatSection">
+      <div id="chatBox"></div>
+      <div class="chatInputRow">
+        <input type="text" id="chatInput" placeholder="Type a message...">
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+
+    <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
 
   <script>
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
+    let activeStudentId = null;
+    let pollTimer = null;
 
     if (!token || role !== 'teacher') {
       window.location.href = '/login.html';
@@ -42,11 +63,58 @@
           const div = document.createElement('div');
           div.className = 'student';
           div.innerText = s.name + ' (' + s.email + ')';
+          div.onclick = function() { openChat(s._id, div); };
           container.appendChild(div);
         });
       } else {
         container.innerText = 'No students assigned yet.';
       }
+    }
+
+    function openChat(studentId, el) {
+      activeStudentId = studentId;
+      document.querySelectorAll('.student').forEach(function(d) { d.classList.remove('active'); });
+      el.classList.add('active');
+      document.getElementById('chatSection').style.display = 'block';
+      loadMessages();
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(loadMessages, 3000);
+    }
+
+    async function loadMessages() {
+      if (!activeStudentId) return;
+      const res = await fetch('/api/chat/conversation/' + activeStudentId, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const box = document.getElementById('chatBox');
+      box.innerHTML = '';
+
+      data.messages.forEach(function(m) {
+        const div = document.createElement('div');
+        div.className = 'msg ' + (m.sender === activeStudentId ? 'theirs' : 'mine');
+        div.innerText = m.text;
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text || !activeStudentId) return;
+
+      await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ receiverId: activeStudentId, text })
+      });
+
+      input.value = '';
+      loadMessages();
     }
 
     function logout() {
