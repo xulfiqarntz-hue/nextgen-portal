@@ -44,9 +44,10 @@
           window.location.href = '/teacher-dashboard.html';
         } else if (data.role === 'subadmin') {
           window.location.href = '/subadmin-dashboard.html';
+        } else if (data.role === 'mainadmin') {
+          window.location.href = '/mainadmin-dashboard.html';
         } else {
-          document.getElementById('message').style.color = 'green';
-          document.getElementById('message').innerText = 'Login successful! Dashboard for ' + data.role + ' coming soon.';
+          document.getElementById('message').innerText = 'Unknown role';
         }
       } else {
         document.getElementById('message').innerText = data.error;
