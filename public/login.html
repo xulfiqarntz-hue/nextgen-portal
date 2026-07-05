@@ -37,8 +37,13 @@
         localStorage.setItem('token', data.token);
         localStorage.setItem('role', data.role);
         localStorage.setItem('name', data.name);
-        document.getElementById('message').style.color = 'green';
-        document.getElementById('message').innerText = 'Login successful! Welcome ' + data.name;
+
+        if (data.role === 'student') {
+          window.location.href = '/student-dashboard.html';
+        } else {
+          document.getElementById('message').style.color = 'green';
+          document.getElementById('message').innerText = 'Login successful! Dashboard for ' + data.role + ' coming soon.';
+        }
       } else {
         document.getElementById('message').innerText = data.error;
       }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 30px; }
+    .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+    h2 { color: #1a3c6e; }
+    #teacherInfo { margin-top: 15px; padding: 15px; background: #eaf1fb; border-radius: 8px; }
+    button { margin-top: 20px; padding: 10px 15px; background: #b91c1c; color: white; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 id="welcome">Welcome</h2>
+    <p>Here is your assigned teacher:</p>
+    <div id="teacherInfo">Loading...</div>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const name = localStorage.getItem('name');
+    const role = localStorage.getItem('role');
+
+    if (!token || role !== 'student') {
+      window.location.href = '/login.html';
+    }
+
+    document.getElementById('welcome').innerText = 'Welcome, ' + name;
+
+    async function loadTeacher() {
+      const res = await fetch('/api/my-teacher', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+
+      if (data.teacher) {
+        document.getElementById('teacherInfo').innerText =
+          data.teacher.name + ' (' + data.teacher.email + ')';
+      } else {
+        document.getElementById('teacherInfo').innerText = 'No teacher assigned yet.';
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadTeacher();
+  </script>
+</body>
+</html>
