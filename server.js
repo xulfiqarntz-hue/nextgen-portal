@@ -22,6 +22,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api', assignRoutes);
 app.use('/api/chat', chatRoutes);
 
+app.get('/', (req, res) => {
+  res.redirect('/login.html');
+});
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
