@@ -51,3 +51,13 @@ router.get('/my-teacher', require('../middleware/auth').verifyToken, require('..
     res.status(500).json({ error: err.message });
   }
 });
+
+router.get('/all-users', require('../middleware/auth').verifyToken, require('../middleware/auth').allowRoles('mainadmin', 'subadmin'), async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' }, 'name email');
+    const teachers = await User.find({ role: 'teacher' }, 'name email');
+    res.json({ students, teachers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});

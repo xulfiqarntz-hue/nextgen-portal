@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sub Admin Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 30px; }
+    .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+    h2 { color: #1a3c6e; }
+    select, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+    button { background: #1a3c6e; color: white; border: none; cursor: pointer; }
+    #logoutBtn { background: #b91c1c; margin-top: 20px; }
+    #message { margin-top: 15px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 id="welcome">Welcome</h2>
+    <p>Assign a Student to a Teacher:</p>
+
+    <label>Student:</label>
+    <select id="studentSelect"></select>
+
+    <label>Teacher:</label>
+    <select id="teacherSelect"></select>
+
+    <button onclick="assign()">Assign</button>
+    <p id="message"></p>
+
+    <button id="logoutBtn" onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const name = localStorage.getItem('name');
+    const role = localStorage.getItem('role');
+
+    if (!token || (role !== 'subadmin' && role !== 'mainadmin')) {
+      window.location.href = '/login.html';
+    }
+
+    document.getElementById('welcome').innerText = 'Welcome, ' + name;
+
+    async function loadUsers() {
+      const res = await fetch('/api/all-users', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+
+      const studentSelect = document.getElementById('studentSelect');
+      const teacherSelect = document.getElementById('teacherSelect');
+
+      data.students.forEach(function(s) {
+        const opt = document.createElement('option');
+        opt.value = s._id;
+        opt.innerText = s.name + ' (' + s.email + ')';
+        studentSelect.appendChild(opt);
+      });
+
+      data.teachers.forEach(function(t) {
+        const opt = document.createElement('option');
+        opt.value = t._id;
+        opt.innerText = t.name + ' (' + t.email + ')';
+        teacherSelect.appendChild(opt);
+      });
+    }
+
+    async function assign() {
+      const studentId = document.getElementById('studentSelect').value;
+      const teacherId = document.getElementById('teacherSelect').value;
+
+      const res = await fetch('/api/assign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ studentId, teacherId })
+      });
+
+      const data = await res.json();
+      document.getElementById('message').innerText = data.message || data.error;
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
