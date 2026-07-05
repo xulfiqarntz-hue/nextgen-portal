@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NextGen eAcademy - Login</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .box { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 300px; }
+    h2 { text-align: center; color: #1a3c6e; }
+    input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+    button { width: 100%; padding: 10px; background: #1a3c6e; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+    #message { text-align: center; margin-top: 10px; color: red; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>NextGen eAcademy</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p id="message"></p>
+  </div>
+
+  <script>
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role);
+        localStorage.setItem('name', data.name);
+        document.getElementById('message').style.color = 'green';
+        document.getElementById('message').innerText = 'Login successful! Welcome ' + data.name;
+      } else {
+        document.getElementById('message').innerText = data.error;
+      }
+    }
+  </script>
+</body>
+</html>
