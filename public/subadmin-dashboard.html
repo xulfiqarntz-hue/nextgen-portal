@@ -129,11 +129,14 @@
         const row = document.createElement('div');
         row.className = 'userRow';
         row.innerHTML = '<span>' + u.name + ' (' + u.email + ')</span>';
-        const delBtn = document.createElement('button');
-        delBtn.innerText = 'Delete';
-        delBtn.className = 'dangerBtn';
-        delBtn.onclick = function() { deleteUser(u._id, u.name); };
-        row.appendChild(delBtn);
+        // Only mainadmin may delete users; for subadmins we hide the delete button
+        if (role === 'mainadmin') {
+          const delBtn = document.createElement('button');
+          delBtn.innerText = 'Delete';
+          delBtn.className = 'dangerBtn';
+          delBtn.onclick = function() { deleteUser(u._id, u.name); };
+          row.appendChild(delBtn);
+        }
         manageList.appendChild(row);
       });
     }

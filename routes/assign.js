@@ -96,14 +96,11 @@ router.get('/view/:studentId/:teacherId', verifyToken, allowRoles('mainadmin', '
   }
 });
 
-router.delete('/users/:userId', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
+router.delete('/users/:userId', verifyToken, allowRoles('mainadmin'), async (req, res) => {
   try {
     const targetUser = await User.findById(req.params.userId);
     if (!targetUser) return res.status(404).json({ error: 'User not found' });
 
-    if (req.user.role === 'subadmin' && !['teacher', 'student'].includes(targetUser.role)) {
-      return res.status(403).json({ error: 'Sub Admins can only delete teacher or student accounts' });
-    }
     if (targetUser.role === 'mainadmin') {
       return res.status(403).json({ error: 'Cannot delete a Main Admin account' });
     }

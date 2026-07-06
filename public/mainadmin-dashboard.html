@@ -74,7 +74,7 @@
   <div class="layout">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-logo">N</div>
+        <div class="brand-logo"><img id="brandLogoImg" src="/nextgen-logo.png" alt="NextGen logo" style="width:44px;height:44px;border-radius:12px;object-fit:cover;display:block;"></div>
         <div class="brand-text">
           <h1>NextGen Admin</h1>
           <p>Main Admin</p>
@@ -87,11 +87,15 @@
         <button data-tab="add-student" onclick="selectTab('add-student')">Add Student</button>
         <button data-tab="assign" onclick="selectTab('assign')">Assign Student</button>
         <button data-tab="tutors" onclick="selectTab('tutors')">Tutors <span id="tutorBadge" class="badge">0</span></button>
+        <button data-tab="tutors" onclick="selectTab('tutors')">Teachers List</button>
         <button data-tab="add-tutor" onclick="selectTab('add-tutor')">Add Tutor</button>
+        <button data-tab="add-subadmin" onclick="selectTab('add-subadmin')">Add Sub Admin</button>
         <button data-tab="subjects" onclick="selectTab('subjects')">Subjects List</button>
         <button data-tab="chat" onclick="selectTab('chat')">Chat <span class="badge">New</span></button>
         <button data-tab="expenses" onclick="selectTab('expenses')">Expenses</button>
       </div>
+
+      
 
       <button class="logout-btn" onclick="logout()">Logout</button>
     </aside>
@@ -181,6 +185,22 @@
         </div>
       </section>
 
+      <section id="add-subadmin" class="section">
+        <header><h3>Add Sub Admin</h3></header>
+        <div class="card">
+          <div class="form-grid">
+            <div class="form-group"><label>Name</label><input id="newSubadminName" placeholder="Full name"></div>
+            <div class="form-group"><label>Email</label><input id="newSubadminEmail" type="email" placeholder="subadmin@example.com"></div>
+            <div class="form-group"><label>Password</label><input id="newSubadminPassword" type="password" placeholder="Password"></div>
+          </div>
+          <div class="inline-actions">
+            <button class="button-primary" onclick="createSubadmin()">Create Sub Admin</button>
+            <button class="button-secondary" onclick="clearAddSubadmin()">Clear</button>
+          </div>
+          <p id="subadminCreateMsg" class="note"></p>
+        </div>
+      </section>
+
       <section id="subjects" class="section">
         <header><h3>Subjects List</h3></header>
         <div class="card">
@@ -216,7 +236,7 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
-    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subjects','chat','expenses'];
+    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','add-subadmin','subjects','chat','expenses'];
 
     if (!token || role !== 'mainadmin') {
       window.location.href = '/login.html';
@@ -274,6 +294,8 @@
         body.appendChild(tr);
       });
     }
+
+    
 
     function populateSelects() {
       const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect')];
@@ -341,6 +363,30 @@
       document.getElementById('tutorCreateMsg').innerText = '';
     }
 
+    async function createSubadmin() {
+      const name = document.getElementById('newSubadminName').value.trim();
+      const email = document.getElementById('newSubadminEmail').value.trim();
+      const password = document.getElementById('newSubadminPassword').value.trim();
+      if (!name || !email || !password) {
+        document.getElementById('subadminCreateMsg').innerText = 'All fields are required.';
+        return;
+      }
+      const res = await fetch('/api/auth/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ name, email, password, role: 'subadmin' })
+      });
+      const data = await res.json();
+      document.getElementById('subadminCreateMsg').innerText = data.message || data.error;
+      if (res.ok) { clearAddSubadmin(); loadAllData(); }
+    }
+
+    function clearAddSubadmin() {
+      document.getElementById('newSubadminName').value = '';
+      document.getElementById('newSubadminEmail').value = '';
+      document.getElementById('newSubadminPassword').value = '';
+      document.getElementById('subadminCreateMsg').innerText = '';
+    }
+
     async function assignStudent() {
       const studentId = document.getElementById('assignStudentSelect').value;
       const tutorId = document.getElementById('assignTutorSelect').value;
@@ -399,6 +445,8 @@
       localStorage.clear();
       window.location.href = '/login.html';
     }
+
+    
 
     loadAllData();
   </script>
