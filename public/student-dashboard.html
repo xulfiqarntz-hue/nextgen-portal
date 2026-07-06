@@ -130,6 +130,20 @@
       background: rgba(14, 165, 233, 0.12);
     }
 
+    .unread-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 28px;
+      padding: 0 10px;
+      background: #ef4444;
+      color: #ffffff;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
     .avatar {
       width: 48px;
       height: 48px;
@@ -170,6 +184,7 @@
     .main-panel {
       display: flex;
       flex-direction: column;
+      min-height: 0;
       background: #ffffff;
       border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 0;
@@ -205,16 +220,34 @@
       flex-direction: column;
       gap: 16px;
       padding: 24px 28px 20px;
-      flex: 1;
+      flex: 1 1 auto;
+      min-height: 0;
       background: #ffffff;
+      overflow: hidden;
     }
 
     .messages {
+      /* grow to fill the available space and scroll under the typing area */
       display: grid;
       gap: 14px;
+      flex: 1 1 auto;
       overflow-y: auto;
       padding-right: 4px;
-      min-height: 260px;
+    }
+
+    /* Ensure the chatSection wrapper participates in flex layout so #chatBox can grow */
+    #chatSection {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #chatBox {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
     .message-row {
@@ -272,6 +305,10 @@
       gap: 12px;
       align-items: center;
       background: #f8fafc;
+    }
+
+    .bottom-bar.hidden {
+      display: none;
     }
 
     .bottom-bar input {
@@ -342,8 +379,8 @@
         </div>
       </div>
 
-      <div class="bottom-bar">
-        <input id="chatInput" type="text" placeholder="Type a message...">
+      <div id="bottomBar" class="bottom-bar hidden">
+        <input id="chatInput" type="text" placeholder="Type a message..." onkeydown="handleMessageKeydown(event)">
         <button class="btn-send" onclick="sendMessage()" aria-label="Send message">➤</button>
       </div>
     </section>
@@ -353,7 +390,10 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
+    const readStateKey = 'studentTeacherReadAt';
+    let teachers = [];
     let activeTeacherId = null;
+    let activeTeacher = null;
     let pollTimer = null;
 
     if (!token || role !== 'student') {
@@ -362,47 +402,97 @@
 
     document.getElementById('welcome').innerText = 'Welcome, ' + name;
 
+    function loadReadState() {
+      try {
+        const raw = localStorage.getItem(readStateKey);
+        return raw ? JSON.parse(raw) : {};
+      } catch (err) {
+        return {};
+      }
+    }
+
+    function saveReadState(state) {
+      localStorage.setItem(readStateKey, JSON.stringify(state));
+    }
+
     async function loadTeachers() {
+      const readState = loadReadState();
       const res = await fetch('/api/my-teachers', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
+      teachers = data.teachers || [];
+      teachers.forEach(t => {
+        t.lastMessage = 'No messages yet.';
+        t.lastMessageTime = null;
+        t.lastReadAt = readState[t._id] || null;
+        t.lastSender = null;
+        t.unread = false;
+      });
+
+      await Promise.all(teachers.map(updateTeacherStatus));
+      renderTeacherList();
+      startTeacherPolling();
+    }
+
+    function renderTeacherList() {
       const container = document.getElementById('teacherList');
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
       container.innerHTML = '';
+      const filtered = teachers.filter(t => t.name.toLowerCase().includes(query) || (t.email || '').toLowerCase().includes(query));
 
-      if (data.teachers && data.teachers.length > 0) {
-        data.teachers.forEach(function(t) {
-          const div = document.createElement('button');
-          div.type = 'button';
-          div.className = 'chat-item';
-          div.onclick = function() { openChat(t._id, div, t.name, t.email); };
-
-          const avatar = document.createElement('div');
-          avatar.className = 'avatar';
-          const nameParts = t.name.trim().split(/\s+/);
-          const initials = nameParts.length > 1
-            ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
-            : t.name.trim().slice(0, 2).toUpperCase();
-          avatar.innerText = initials;
-
-          const info = document.createElement('div');
-          info.className = 'chat-info';
-          info.innerHTML = '<p class="chat-name">' + t.name + '</p><p class="chat-last">' + (t.email || '') + '</p>';
-
-          div.append(avatar, info);
-          container.appendChild(div);
-        });
-      } else {
-        container.innerHTML = '<p style="padding:20px;color:var(--muted);">No teachers assigned yet.</p>';
+      if (!filtered.length) {
+        container.innerHTML = '<p style="padding:20px;color:var(--muted);">No teachers found.</p>';
+        return;
       }
+
+      filtered.forEach(function(t) {
+        const div = document.createElement('button');
+        div.type = 'button';
+        div.className = 'chat-item' + (activeTeacherId === t._id ? ' active' : '');
+        div.onclick = function() { openChat(t._id, div, t.name); };
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        const nameParts = t.name.trim().split(/\s+/);
+        const initials = nameParts.length > 1
+          ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+          : t.name.trim().slice(0, 2).toUpperCase();
+        avatar.innerText = initials;
+
+        const info = document.createElement('div');
+        info.className = 'chat-info';
+        info.innerHTML = '<p class="chat-name">' + t.name + '</p><p class="chat-last">' + (t.lastMessage || '') + '</p>';
+
+        const meta = document.createElement('div');
+        meta.style.display = 'flex';
+        meta.style.alignItems = 'center';
+        meta.style.justifyContent = 'flex-end';
+        meta.style.gap = '8px';
+        if (t.unread) {
+          meta.innerHTML = '<span class="unread-badge">New</span>';
+        }
+
+        div.append(avatar, info, meta);
+        container.appendChild(div);
+      });
     }
 
     function openChat(teacherId, el, teacherName) {
       activeTeacherId = teacherId;
+      activeTeacher = teachers.find(t => t._id === teacherId);
+      if (activeTeacher) {
+        activeTeacher.unread = false;
+        activeTeacher.lastReadAt = activeTeacher.lastMessageTime || new Date().toISOString();
+        const state = loadReadState();
+        state[teacherId] = activeTeacher.lastReadAt;
+        saveReadState(state);
+      }
       document.querySelectorAll('.chat-item').forEach(function(d) { d.classList.remove('active'); });
       el.classList.add('active');
       document.getElementById('chatTitle').innerText = teacherName;
-      document.getElementById('chatSection').style.display = 'block';
+      document.getElementById('chatSection').style.display = 'flex';
+      document.getElementById('bottomBar').classList.remove('hidden');
       loadMessages();
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = setInterval(loadMessages, 3000);
@@ -417,7 +507,22 @@
       const box = document.getElementById('chatBox');
       box.innerHTML = '';
 
-      data.messages.forEach(function(m) {
+      const messages = data.messages || [];
+      if (activeTeacher) {
+        const last = messages[messages.length - 1];
+        if (last) {
+          activeTeacher.lastMessage = last.text;
+          activeTeacher.lastMessageTime = last.createdAt;
+          activeTeacher.lastSender = last.sender;
+          activeTeacher.unread = false;
+          activeTeacher.lastReadAt = last.createdAt;
+          const state = loadReadState();
+          state[activeTeacherId] = activeTeacher.lastReadAt;
+          saveReadState(state);
+        }
+      }
+
+      messages.forEach(function(m) {
         const row = document.createElement('div');
         row.className = 'message-row ' + (m.sender === activeTeacherId ? 'theirs' : 'mine');
 
@@ -435,6 +540,7 @@
       });
 
       box.scrollTop = box.scrollHeight;
+      renderTeacherList();
     }
 
     async function sendMessage() {
@@ -452,7 +558,59 @@
       });
 
       input.value = '';
-      loadMessages();
+      await loadMessages();
+      renderTeacherList();
+    }
+
+    function handleMessageKeydown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    async function fetchLastMessage(teacherId) {
+      try {
+        const res = await fetch('/api/chat/conversation/' + teacherId, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        const messages = data.messages || [];
+        if (!messages.length) return null;
+        const last = messages[messages.length - 1];
+        return {
+          text: last.text,
+          sender: last.sender,
+          createdAt: last.createdAt
+        };
+      } catch (err) {
+        return null;
+      }
+    }
+
+    async function updateTeacherStatus(teacher) {
+      const last = await fetchLastMessage(teacher._id);
+      if (!last) return;
+      teacher.lastMessage = last.text;
+      teacher.lastMessageTime = last.createdAt;
+      teacher.lastSender = last.sender;
+      const lastReadAtMs = teacher.lastReadAt ? new Date(teacher.lastReadAt).getTime() : 0;
+      const lastCreatedMs = new Date(last.createdAt).getTime();
+      if (teacher._id === activeTeacherId) {
+        teacher.unread = false;
+      } else {
+        teacher.unread = last.sender === teacher._id && (lastReadAtMs === 0 || lastCreatedMs > lastReadAtMs);
+      }
+    }
+
+    function startTeacherPolling() {
+      setInterval(async () => {
+        await Promise.all(teachers.map(updateTeacherStatus));
+        renderTeacherList();
+        if (activeTeacherId) {
+          await loadMessages();
+        }
+      }, 3000);
     }
 
     function logout() {

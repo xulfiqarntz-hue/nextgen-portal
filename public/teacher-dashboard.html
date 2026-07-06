@@ -191,9 +191,24 @@
       font-weight: 700;
     }
 
+    .unread-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 28px;
+      padding: 0 10px;
+      background: #ef4444;
+      color: #ffffff;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
     .main-panel {
       display: flex;
       flex-direction: column;
+      min-height: 0;
       background: #ffffff;
       border: 1px solid rgba(30, 58, 138, 0.14);
       border-radius: 0;
@@ -225,13 +240,17 @@
       flex-direction: column;
       gap: 16px;
       padding: 24px 28px 20px;
-      flex: 1;
+      flex: 1 1 auto;
+      min-height: 0;
       background: #ffffff;
+      overflow: hidden;
     }
 
     .messages {
+      /* allow the messages area to grow and scroll, keeping the typing box visible */
       display: grid;
       gap: 14px;
+      flex: 1 1 auto;
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -291,6 +310,10 @@
       gap: 12px;
       align-items: center;
       background: #f8fafc;
+    }
+
+    .bottom-bar.hidden {
+      display: none;
     }
 
     .message-input-group {
@@ -429,9 +452,9 @@
         <div id="messages" class="messages"></div>
       </div>
 
-      <div class="bottom-bar">
+      <div id="bottomBar" class="bottom-bar hidden">
         <div class="message-input-group">
-          <input id="messageInput" type="text" placeholder="Type a message...">
+          <input id="messageInput" type="text" placeholder="Type a message..." onkeydown="handleMessageKeydown(event)">
         </div>
         <button class="btn-send" onclick="sendMessage()" aria-label="Send message">➤</button>
       </div>
@@ -442,6 +465,7 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
+    const readStateKey = 'teacherStudentReadAt';
     let students = [];
     let activeStudent = null;
     let activeMessages = [];
@@ -450,7 +474,21 @@
       window.location.href = '/login.html';
     }
 
+    function loadReadState() {
+      try {
+        const raw = localStorage.getItem(readStateKey);
+        return raw ? JSON.parse(raw) : {};
+      } catch (err) {
+        return {};
+      }
+    }
+
+    function saveReadState(state) {
+      localStorage.setItem(readStateKey, JSON.stringify(state));
+    }
+
     async function loadStudents() {
+      const readState = loadReadState();
       const res = await fetch('/api/my-students', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -458,18 +496,16 @@
       students = data.students || [];
       students.forEach(s => {
         s.lastMessage = 'No messages yet.';
+        s.lastMessageTime = null;
+        s.lastReadAt = readState[s._id] || null;
+        s.lastSender = null;
+        s.unread = false;
         s.pinned = false;
       });
 
-      await Promise.all(students.map(async (student) => {
-        const last = await fetchLastMessage(student._id);
-        if (last) {
-          student.lastMessage = last;
-          student.pinned = last.toLowerCase().includes('important') || student.pinned;
-        }
-      }));
-
+      await Promise.all(students.map(student => updateStudentStatus(student)));
       renderChatList();
+      startStudentPolling();
     }
 
     async function fetchLastMessage(studentId) {
@@ -480,7 +516,12 @@
         const data = await res.json();
         const messages = data.messages || [];
         if (!messages.length) return null;
-        return messages[messages.length - 1].text;
+        const last = messages[messages.length - 1];
+        return {
+          text: last.text,
+          sender: last.sender,
+          createdAt: last.createdAt
+        };
       } catch (err) {
         return null;
       }
@@ -516,7 +557,14 @@
         info.innerHTML = '<p class="chat-name">' + student.name + '</p><p class="chat-last">' + (student.lastMessage || 'No messages yet.') + '</p>';
 
         const meta = document.createElement('div');
-        if (student.pinned) {
+        meta.style.display = 'flex';
+        meta.style.alignItems = 'center';
+        meta.style.justifyContent = 'flex-end';
+        meta.style.gap = '8px';
+
+        if (student.unread) {
+          meta.innerHTML = '<span class="unread-badge">New</span>';
+        } else if (student.pinned) {
           meta.innerHTML = '<span class="pinned">★ Pinned</span>';
         }
 
@@ -528,7 +576,13 @@
     async function selectStudent(student) {
       activeStudent = student;
       document.getElementById('chatTitle').innerText = student.name;
+      document.getElementById('bottomBar').classList.remove('hidden');
       await loadMessages(student);
+      student.lastReadAt = student.lastMessageTime || new Date().toISOString();
+      student.unread = false;
+      const state = loadReadState();
+      state[student._id] = student.lastReadAt;
+      saveReadState(state);
       renderChatList();
     }
 
@@ -540,12 +594,23 @@
       activeMessages = data.messages || [];
       updateLastMessage(student, activeMessages);
       renderMessages();
+
+      if (activeMessages.length) {
+        const last = activeMessages[activeMessages.length - 1];
+        student.lastReadAt = last.createdAt;
+        student.unread = false;
+        const state = loadReadState();
+        state[student._id] = student.lastReadAt;
+        saveReadState(state);
+      }
     }
 
     function updateLastMessage(student, messages) {
       if (!messages.length) return;
       const last = messages[messages.length - 1];
       student.lastMessage = last.text;
+      student.lastMessageTime = last.createdAt;
+      student.lastSender = last.sender;
       student.pinned = last.text.toLowerCase().includes('important') || student.pinned;
     }
 
@@ -589,6 +654,36 @@
 
       input.value = '';
       await loadMessages(activeStudent);
+      renderChatList();
+    }
+
+    async function updateStudentStatus(student) {
+      const last = await fetchLastMessage(student._id);
+      if (!last) return;
+      student.lastMessage = last.text;
+      student.lastMessageTime = last.createdAt;
+      student.lastSender = last.sender;
+      const lastReadAtMs = student.lastReadAt ? new Date(student.lastReadAt).getTime() : 0;
+      const lastCreatedMs = new Date(last.createdAt).getTime();
+      student.unread = last.sender === student._id && (lastReadAtMs === 0 || lastCreatedMs > lastReadAtMs);
+      student.pinned = last.text.toLowerCase().includes('important') || student.pinned;
+    }
+
+    function startStudentPolling() {
+      setInterval(async () => {
+        await Promise.all(students.map(updateStudentStatus));
+        renderChatList();
+        if (activeStudent) {
+          await loadMessages(activeStudent);
+        }
+      }, 3000);
+    }
+
+    function handleMessageKeydown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
     }
 
     function attachPhoto() {
