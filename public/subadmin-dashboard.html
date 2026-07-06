@@ -8,6 +8,7 @@
     h2 { color: #1a3c6e; }
     select, input, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
     button { background: #1a3c6e; color: white; border: none; cursor: pointer; }
+    .dangerBtn { background: #b91c1c; }
     #logoutBtn { background: #b91c1c; margin-top: 20px; }
     .msg { margin-top: 12px; text-align: center; }
     hr { margin: 25px 0; border: none; border-top: 1px solid #ddd; }
@@ -15,6 +16,8 @@
     .chatmsg { padding: 8px 12px; margin: 6px 0; border-radius: 8px; max-width: 75%; clear: both; }
     .fromStudent { background: #e5e7eb; color: #111; float: left; }
     .fromTeacher { background: #1a3c6e; color: white; float: right; }
+    .userRow { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f7f7f7; border-radius: 6px; margin-top: 6px; }
+    .userRow button { width: auto; padding: 6px 10px; margin: 0; }
   </style>
 </head>
 <body>
@@ -40,6 +43,7 @@
     <label>Teacher:</label>
     <select id="teacherSelect"></select>
     <button onclick="assign()">Assign</button>
+    <button class="dangerBtn" onclick="deassign()">De-assign</button>
     <p id="message" class="msg"></p>
 
     <hr>
@@ -51,6 +55,11 @@
     <select id="viewTeacherSelect"></select>
     <button onclick="viewChat()">View Chat</button>
     <div id="viewChatBox"></div>
+
+    <hr>
+
+    <p><strong>Manage Accounts (delete):</strong></p>
+    <div id="userManageList"></div>
 
     <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
@@ -74,10 +83,7 @@
 
       const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ name: newName, email: newEmail, password: newPassword, role: newRole })
       });
 
@@ -93,9 +99,7 @@
     }
 
     async function loadUsers() {
-      const res = await fetch('/api/all-users', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
+      const res = await fetch('/api/all-users', { headers: { 'Authorization': 'Bearer ' + token } });
       const data = await res.json();
 
       [document.getElementById('studentSelect'), document.getElementById('viewStudentSelect')].forEach(function(sel) {
@@ -117,29 +121,62 @@
           sel.appendChild(opt);
         });
       });
+
+      const manageList = document.getElementById('userManageList');
+      manageList.innerHTML = '';
+      const allManageable = data.students.concat(data.teachers);
+      allManageable.forEach(function(u) {
+        const row = document.createElement('div');
+        row.className = 'userRow';
+        row.innerHTML = '<span>' + u.name + ' (' + u.email + ')</span>';
+        const delBtn = document.createElement('button');
+        delBtn.innerText = 'Delete';
+        delBtn.className = 'dangerBtn';
+        delBtn.onclick = function() { deleteUser(u._id, u.name); };
+        row.appendChild(delBtn);
+        manageList.appendChild(row);
+      });
     }
 
     async function assign() {
       const studentId = document.getElementById('studentSelect').value;
       const teacherId = document.getElementById('teacherSelect').value;
-
       const res = await fetch('/api/assign', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ studentId, teacherId })
       });
-
       const data = await res.json();
       document.getElementById('message').innerText = data.message || data.error;
+    }
+
+    async function deassign() {
+      const studentId = document.getElementById('studentSelect').value;
+      const teacherId = document.getElementById('teacherSelect').value;
+      const res = await fetch('/api/deassign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ studentId, teacherId })
+      });
+      const data = await res.json();
+      document.getElementById('message').innerText = data.message || data.error;
+    }
+
+    async function deleteUser(userId, userName) {
+      if (!confirm('Delete ' + userName + '? This cannot be undone.')) return;
+
+      const res = await fetch('/api/users/' + userId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+      loadUsers();
     }
 
     async function viewChat() {
       const studentId = document.getElementById('viewStudentSelect').value;
       const teacherId = document.getElementById('viewTeacherSelect').value;
-
       const res = await fetch('/api/chat/view/' + studentId + '/' + teacherId, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
