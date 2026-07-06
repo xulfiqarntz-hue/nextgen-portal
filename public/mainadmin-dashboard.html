@@ -6,25 +6,52 @@
     body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 30px; }
     .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
     h2 { color: #1a3c6e; }
-    select, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+    select, input, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
     button { background: #1a3c6e; color: white; border: none; cursor: pointer; }
     #logoutBtn { background: #b91c1c; margin-top: 20px; }
-    #message { margin-top: 15px; text-align: center; }
+    .msg { margin-top: 12px; text-align: center; }
+    hr { margin: 25px 0; border: none; border-top: 1px solid #ddd; }
+    #viewChatBox { margin-top: 10px; height: 220px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fafafa; }
+    .chatmsg { padding: 8px 12px; margin: 6px 0; border-radius: 8px; max-width: 75%; clear: both; }
+    .fromStudent { background: #e5e7eb; color: #111; float: left; }
+    .fromTeacher { background: #1a3c6e; color: white; float: right; }
   </style>
 </head>
 <body>
   <div class="card">
     <h2 id="welcome">Welcome, Main Admin</h2>
-    <p>Assign a Student to a Teacher:</p>
 
+    <p><strong>Create a New Account:</strong></p>
+    <input type="text" id="newName" placeholder="Full Name">
+    <input type="email" id="newEmail" placeholder="Email">
+    <input type="password" id="newPassword" placeholder="Password">
+    <select id="newRole">
+      <option value="student">Student</option>
+      <option value="teacher">Teacher</option>
+      <option value="subadmin">Sub Admin</option>
+    </select>
+    <button onclick="createUser()">Create Account</button>
+    <p id="createMsg" class="msg"></p>
+
+    <hr>
+
+    <p><strong>Assign a Student to a Teacher:</strong></p>
     <label>Student:</label>
     <select id="studentSelect"></select>
-
     <label>Teacher:</label>
     <select id="teacherSelect"></select>
-
     <button onclick="assign()">Assign</button>
-    <p id="message"></p>
+    <p id="message" class="msg"></p>
+
+    <hr>
+
+    <p><strong>View a Student-Teacher Conversation (read-only):</strong></p>
+    <label>Student:</label>
+    <select id="viewStudentSelect"></select>
+    <label>Teacher:</label>
+    <select id="viewTeacherSelect"></select>
+    <button onclick="viewChat()">View Chat</button>
+    <div id="viewChatBox"></div>
 
     <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
@@ -40,27 +67,56 @@
 
     document.getElementById('welcome').innerText = 'Welcome, ' + name;
 
+    async function createUser() {
+      const newName = document.getElementById('newName').value;
+      const newEmail = document.getElementById('newEmail').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const newRole = document.getElementById('newRole').value;
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ name: newName, email: newEmail, password: newPassword, role: newRole })
+      });
+
+      const data = await res.json();
+      document.getElementById('createMsg').innerText = data.message || data.error;
+
+      if (res.ok) {
+        document.getElementById('newName').value = '';
+        document.getElementById('newEmail').value = '';
+        document.getElementById('newPassword').value = '';
+        loadUsers();
+      }
+    }
+
     async function loadUsers() {
       const res = await fetch('/api/all-users', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
 
-      const studentSelect = document.getElementById('studentSelect');
-      const teacherSelect = document.getElementById('teacherSelect');
-
-      data.students.forEach(function(s) {
-        const opt = document.createElement('option');
-        opt.value = s._id;
-        opt.innerText = s.name + ' (' + s.email + ')';
-        studentSelect.appendChild(opt);
+      [document.getElementById('studentSelect'), document.getElementById('viewStudentSelect')].forEach(function(sel) {
+        sel.innerHTML = '';
+        data.students.forEach(function(s) {
+          const opt = document.createElement('option');
+          opt.value = s._id;
+          opt.innerText = s.name + ' (' + s.email + ')';
+          sel.appendChild(opt);
+        });
       });
 
-      data.teachers.forEach(function(t) {
-        const opt = document.createElement('option');
-        opt.value = t._id;
-        opt.innerText = t.name + ' (' + t.email + ')';
-        teacherSelect.appendChild(opt);
+      [document.getElementById('teacherSelect'), document.getElementById('viewTeacherSelect')].forEach(function(sel) {
+        sel.innerHTML = '';
+        data.teachers.forEach(function(t) {
+          const opt = document.createElement('option');
+          opt.value = t._id;
+          opt.innerText = t.name + ' (' + t.email + ')';
+          sel.appendChild(opt);
+        });
       });
     }
 
@@ -79,6 +135,29 @@
 
       const data = await res.json();
       document.getElementById('message').innerText = data.message || data.error;
+    }
+
+    async function viewChat() {
+      const studentId = document.getElementById('viewStudentSelect').value;
+      const teacherId = document.getElementById('viewTeacherSelect').value;
+
+      const res = await fetch('/api/chat/view/' + studentId + '/' + teacherId, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const box = document.getElementById('viewChatBox');
+      box.innerHTML = '';
+
+      if (data.messages && data.messages.length > 0) {
+        data.messages.forEach(function(m) {
+          const div = document.createElement('div');
+          div.className = 'chatmsg ' + (m.sender === studentId ? 'fromStudent' : 'fromTeacher');
+          div.innerText = m.text;
+          box.appendChild(div);
+        });
+      } else {
+        box.innerText = 'No messages between these two yet.';
+      }
     }
 
     function logout() {
