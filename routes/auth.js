@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { verifyToken, allowRoles } = require('../middleware/auth');
+const { verifyToken, allowRoles, JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -34,7 +34,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -45,3 +45,14 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
+
+// Return current user info
+router.get('/me', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id, 'name email role');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ id: user._id, name: user.name, email: user.email, role: user.role });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
