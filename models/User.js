@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
     enum: ['mainadmin', 'subadmin', 'teacher', 'student'],
     required: true
   },
-  assignedTeacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  assignedTeachers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true });
 

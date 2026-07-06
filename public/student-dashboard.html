@@ -6,8 +6,11 @@
     body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 30px; }
     .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
     h2 { color: #1a3c6e; }
-    #teacherInfo { margin-top: 10px; padding: 12px; background: #eaf1fb; border-radius: 8px; }
-    #chatBox { margin-top: 15px; height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fafafa; }
+    .teacher { padding: 10px; background: #eaf1fb; border-radius: 8px; margin-top: 8px; cursor: pointer; }
+    .teacher:hover { background: #dbe7fa; }
+    .teacher.active { background: #1a3c6e; color: white; }
+    #chatSection { margin-top: 15px; display: none; }
+    #chatBox { height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fafafa; }
     .msg { padding: 8px 12px; margin: 6px 0; border-radius: 8px; max-width: 75%; clear: both; }
     .mine { background: #1a3c6e; color: white; float: right; }
     .theirs { background: #e5e7eb; color: #111; float: left; }
@@ -20,13 +23,15 @@
 <body>
   <div class="card">
     <h2 id="welcome">Welcome</h2>
-    <p>Your teacher:</p>
-    <div id="teacherInfo">Loading...</div>
+    <p>Your teachers (click one to chat):</p>
+    <div id="teacherList">Loading...</div>
 
-    <div id="chatBox"></div>
-    <div class="chatInputRow">
-      <input type="text" id="chatInput" placeholder="Type a message...">
-      <button id="sendBtn" onclick="sendMessage()">Send</button>
+    <div id="chatSection">
+      <div id="chatBox"></div>
+      <div class="chatInputRow">
+        <input type="text" id="chatInput" placeholder="Type a message...">
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+      </div>
     </div>
 
     <button id="logoutBtn" onclick="logout()">Logout</button>
@@ -36,7 +41,8 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
-    let teacherId = null;
+    let activeTeacherId = null;
+    let pollTimer = null;
 
     if (!token || role !== 'student') {
       window.location.href = '/login.html';
@@ -44,26 +50,40 @@
 
     document.getElementById('welcome').innerText = 'Welcome, ' + name;
 
-    async function loadTeacher() {
-      const res = await fetch('/api/my-teacher', {
+    async function loadTeachers() {
+      const res = await fetch('/api/my-teachers', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
+      const container = document.getElementById('teacherList');
+      container.innerHTML = '';
 
-      if (data.teacher) {
-        teacherId = data.teacher._id;
-        document.getElementById('teacherInfo').innerText =
-          data.teacher.name + ' (' + data.teacher.email + ')';
-        loadMessages();
-        setInterval(loadMessages, 3000);
+      if (data.teachers && data.teachers.length > 0) {
+        data.teachers.forEach(function(t) {
+          const div = document.createElement('div');
+          div.className = 'teacher';
+          div.innerText = t.name + ' (' + t.email + ')';
+          div.onclick = function() { openChat(t._id, div); };
+          container.appendChild(div);
+        });
       } else {
-        document.getElementById('teacherInfo').innerText = 'No teacher assigned yet.';
+        container.innerText = 'No teachers assigned yet.';
       }
     }
 
+    function openChat(teacherId, el) {
+      activeTeacherId = teacherId;
+      document.querySelectorAll('.teacher').forEach(function(d) { d.classList.remove('active'); });
+      el.classList.add('active');
+      document.getElementById('chatSection').style.display = 'block';
+      loadMessages();
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(loadMessages, 3000);
+    }
+
     async function loadMessages() {
-      if (!teacherId) return;
-      const res = await fetch('/api/chat/conversation/' + teacherId, {
+      if (!activeTeacherId) return;
+      const res = await fetch('/api/chat/conversation/' + activeTeacherId, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
@@ -72,7 +92,7 @@
 
       data.messages.forEach(function(m) {
         const div = document.createElement('div');
-        div.className = 'msg ' + (m.sender === teacherId ? 'theirs' : 'mine');
+        div.className = 'msg ' + (m.sender === activeTeacherId ? 'theirs' : 'mine');
         div.innerText = m.text;
         box.appendChild(div);
       });
@@ -82,7 +102,7 @@
     async function sendMessage() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
-      if (!text || !teacherId) return;
+      if (!text || !activeTeacherId) return;
 
       await fetch('/api/chat/send', {
         method: 'POST',
@@ -90,7 +110,7 @@
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + token
         },
-        body: JSON.stringify({ receiverId: teacherId, text })
+        body: JSON.stringify({ receiverId: activeTeacherId, text })
       });
 
       input.value = '';
@@ -102,7 +122,7 @@
       window.location.href = '/login.html';
     }
 
-    loadTeacher();
+    loadTeachers();
   </script>
 </body>
 </html>
