@@ -2,12 +2,18 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { verifyToken, allowRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+router.post('/register', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+
+    if (req.user.role === 'subadmin' && !['teacher', 'student'].includes(role)) {
+      return res.status(403).json({ error: 'Sub Admins can only create teacher or student accounts' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ name, email, password: hashedPassword, role });
     await newUser.save();
