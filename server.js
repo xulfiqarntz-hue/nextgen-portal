@@ -29,7 +29,7 @@ app.use('/api', assignRoutes);
 
 
 app.get('/', (req, res) => {
-  res.send('Hello Zulfiqar! Your server is working.');
+  res.sendFile(__dirname + '/public/login.html');
 });
 
 if (require.main === module) {
