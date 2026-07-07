@@ -68,8 +68,8 @@ router.get('/get/:id', verifyToken, allowRoles('mainadmin'), async (req, res) =>
   }
 });
 
-// Delete invoice (temporarily allow without auth for debugging)
-router.delete('/:id', async (req, res) => {
+// Delete invoice
+router.delete('/:id', verifyToken, allowRoles('mainadmin'), async (req, res) => {
   try {
     console.log('DELETE /api/invoices/:id called for', req.params.id);
     const inv = await Invoice.findByIdAndDelete(req.params.id);
