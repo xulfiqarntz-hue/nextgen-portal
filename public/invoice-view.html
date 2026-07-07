@@ -1,90 +1,271 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Invoice</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NextGen Academy Invoice</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
-    .header { display:flex; justify-content:space-between; align-items:center; }
-    .company { font-weight:700; font-size:20px; }
-    .invoice-meta { text-align:right; }
-    .box { border:1px solid #ddd; padding:18px; border-radius:6px; margin-top:18px; }
-    table { width:100%; border-collapse:collapse; margin-top:12px; }
-    th, td { border:1px solid #e6e6e6; padding:8px; text-align:left; }
-    .right { text-align:right; }
-    .actions { margin-top:14px; }
-    .btn { padding:8px 12px; border-radius:6px; cursor:pointer; border:none; }
-    .btn-print { background:#1e40af; color:#fff; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid #0066cc; padding-bottom: 20px; }
+    .logo-section { display: flex; gap: 12px; align-items: center; }
+    .logo { width: 50px; height: 50px; background: #0066cc; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px; }
+    .company-info h1 { font-size: 24px; color: #0066cc; margin-bottom: 4px; }
+    .company-info p { font-size: 13px; color: #666; }
+    .invoice-title { text-align: right; font-size: 32px; font-weight: bold; color: #0066cc; }
+    
+    .meta-row { display: flex; justify-content: space-between; margin-bottom: 30px; gap: 40px; }
+    .meta-column { flex: 1; }
+    .meta-label { font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; }
+    .meta-value { font-size: 14px; color: #000; margin-top: 4px; }
+    
+    .section-title { font-size: 12px; color: #000; text-transform: uppercase; font-weight: 700; margin-bottom: 12px; margin-top: 20px; }
+    .details-row { display: flex; gap: 30px; margin-bottom: 20px; }
+    .detail-item { flex: 1; }
+    .detail-label { font-size: 11px; color: #666; font-weight: 600; }
+    .detail-value { font-size: 13px; color: #000; margin-top: 2px; }
+    
+    .payment-info { background: #f9f9f9; padding: 12px 15px; border-radius: 4px; margin: 15px 0; font-size: 12px; }
+    .payment-row { display: flex; justify-content: space-between; padding: 4px 0; }
+    
+    .items-table { width: 100%; margin: 25px 0; border-collapse: collapse; }
+    .items-table thead { background: #003d99; color: white; }
+    .items-table th { padding: 12px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .items-table td { padding: 12px 10px; font-size: 12px; border-bottom: 1px solid #ddd; }
+    .items-table tbody tr:nth-child(even) { background: #f9f9f9; }
+    .text-right { text-align: right; }
+    
+    .totals-section { margin: 25px 0; }
+    .totals-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+    .totals-label { width: 150px; font-size: 12px; font-weight: 500; }
+    .totals-value { width: 100px; text-align: right; font-size: 12px; }
+    .total-line { border-top: 1px solid #ccc; padding-top: 8px; }
+    .total-line .totals-label { font-weight: 700; }
+    .total-line .totals-value { font-weight: 700; }
+    
+    .signature-section { margin-top: 40px; display: flex; justify-content: space-between; }
+    .signature-line { text-align: center; width: 45%; }
+    .signature-name { margin-top: 60px; font-size: 11px; font-weight: 600; border-top: 1px solid #000; padding-top: 4px; }
+    
+    .footer { margin-top: 40px; border-top: 1px solid #ddd; padding-top: 15px; font-size: 10px; color: #666; text-align: center; }
+    
+    .actions { margin-top: 30px; display: flex; gap: 12px; justify-content: center; }
+    .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .btn-pdf { background: #0066cc; color: white; }
+    .btn-pdf:hover { background: #0052a3; }
+    .btn-print { background: #666; color: white; }
+    .btn-print:hover { background: #555; }
+    
+    @media print {
+      body { padding: 0; background: white; }
+      .container { box-shadow: none; padding: 0; }
+      .actions { display: none; }
+      @page { margin: 0; }
+    }
   </style>
 </head>
 <body>
-  <div id="root">
+  <div class="container" id="invoice">
+    <!-- Header -->
     <div class="header">
-      <div>
-        <div class="company">NextGen eAcademy</div>
-        <div>Anywhere, Anytime</div>
-      </div>
-      <div class="invoice-meta">
-        <div>Invoice</div>
-        <div id="issueDate"></div>
-      </div>
-    </div>
-
-    <div class="box">
-      <div><strong>Student:</strong> <span id="studentName"></span></div>
-      <div><strong>Tutor:</strong> <span id="tutorName"></span></div>
-      <div style="margin-top:8px;"><strong>Month:</strong> <span id="month"></span></div>
-
-      <table>
-        <thead><tr><th>S/No</th><th>Subject</th><th>No of Days</th><th>Month</th><th class="right">Amount</th></tr></thead>
-        <tbody id="items"></tbody>
-      </table>
-
-      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-        <div style="width:320px;">
-          <div style="display:flex;justify-content:space-between;"><div>Payment</div><div id="payment"></div></div>
-          <div style="display:flex;justify-content:space-between;"><div>Discount</div><div id="discount"></div></div>
-          <div style="display:flex;justify-content:space-between;font-weight:700;"><div>Total</div><div id="total"></div></div>
-          <div style="display:flex;justify-content:space-between;"><div>Bank</div><div id="bank"></div></div>
+      <div class="logo-section">
+        <div class="logo">NG</div>
+        <div class="company-info">
+          <h1>NextGen eAcademy</h1>
+          <p>Anywhere, Anytime</p>
         </div>
       </div>
+      <div class="invoice-title">INVOICE</div>
+    </div>
 
-      <div class="actions">
-        <button class="btn btn-print" onclick="window.print()">Print / Save PDF</button>
+    <!-- Meta Information -->
+    <div class="meta-row">
+      <div class="meta-column">
+        <div class="meta-label">Issue Date:</div>
+        <div class="meta-value" id="issueDate">--</div>
+      </div>
+      <div class="meta-column">
+        <div class="meta-label">Due Date:</div>
+        <div class="meta-value" id="dueDate">--</div>
       </div>
     </div>
+
+    <!-- Student & Tutor Details -->
+    <div class="section-title">Invoice Details</div>
+    <div class="details-row">
+      <div class="detail-item">
+        <div class="detail-label">Student Name</div>
+        <div class="detail-value" id="studentName">--</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Tutor Name</div>
+        <div class="detail-value" id="tutorName">--</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Class</div>
+        <div class="detail-value" id="className">--</div>
+      </div>
+    </div>
+
+    <!-- Payment Method -->
+    <div class="section-title">Payment Method</div>
+    <div class="payment-info">
+      <div class="payment-row">
+        <span>Online Transfer</span>
+        <span>Bank Account No: <strong id="bankAccount">--</strong></span>
+        <span>Bank Name: <strong id="bankName">--</strong></span>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>S/No</th>
+          <th>Subject</th>
+          <th>No of Days</th>
+          <th>Month</th>
+          <th class="text-right">Amount (Rs)</th>
+        </tr>
+      </thead>
+      <tbody id="itemsTableBody">
+        <tr>
+          <td>1</td>
+          <td id="subject">Mathematics</td>
+          <td id="noOfDays">30</td>
+          <td id="month">--</td>
+          <td class="text-right" id="amount">--</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Totals Section -->
+    <div class="totals-section">
+      <div class="totals-row">
+        <div class="totals-label">Sub-Total</div>
+        <div class="totals-value" id="subTotal">--</div>
+      </div>
+      <div class="totals-row">
+        <div class="totals-label">Total Discount</div>
+        <div class="totals-value" id="totalDiscount">--</div>
+      </div>
+      <div class="totals-row total-line">
+        <div class="totals-label">Amount Due</div>
+        <div class="totals-value" id="amountDue">--</div>
+      </div>
+      <div class="totals-row">
+        <div class="totals-label">Arrears / Outstanding Bal</div>
+        <div class="totals-value">0.00</div>
+      </div>
+    </div>
+
+    <!-- Signature Section -->
+    <div class="signature-section">
+      <div class="signature-line">
+        <div style="font-size: 11px; font-weight: 600;">Abdul Hadi</div>
+        <div class="signature-name">Authorised Signatory</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>Thank you for considering Us!</p>
+      <p>Website: www.nextgenacademy.com | Email: info.nextgenacademy@gmail.com | Contact No. 92 309 5551470</p>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="actions">
+    <button class="btn btn-pdf" onclick="downloadPDF()">Download as PDF</button>
+    <button class="btn btn-print" onclick="window.print()">Print Invoice</button>
   </div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
+    const invoiceId = params.get('id');
     const token = localStorage.getItem('token');
-    if (!id) { document.getElementById('root').innerText = 'Missing invoice id'; }
 
-    async function load() {
+    async function loadInvoice() {
+      if (!invoiceId) {
+        alert('Missing invoice ID');
+        return;
+      }
+
       try {
-        const res = await fetch('/api/invoices/get/' + id, { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.json();
-        if (!res.ok) { document.getElementById('root').innerText = data.error || 'Unable to load invoice'; return; }
-        const inv = data.invoice;
-        document.getElementById('studentName').innerText = inv.student?.name || '';
-        document.getElementById('tutorName').innerText = inv.teacher?.name || '';
-        document.getElementById('month').innerText = inv.month;
-        document.getElementById('payment').innerText = inv.payment;
-        document.getElementById('discount').innerText = inv.discount;
-        document.getElementById('total').innerText = inv.total;
-        document.getElementById('bank').innerText = (inv.bankName || '') + ' ' + (inv.bankAccountNo || '');
-        document.getElementById('issueDate').innerText = new Date(inv.createdAt).toLocaleDateString();
+        const res = await fetch('/api/invoices/get/' + invoiceId, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.error || 'Unable to load invoice');
+          return;
+        }
 
-        // render single line item for now
-        const tbody = document.getElementById('items');
-        tbody.innerHTML = `<tr><td>1</td><td>Tuition</td><td>-</td><td>${inv.month}</td><td class="right">${inv.payment}</td></tr>`;
+        const data = await res.json();
+        const inv = data.invoice;
+
+        // Populate dates
+        const issueDate = new Date(inv.createdAt);
+        const dueDate = new Date(issueDate.getTime() + 24 * 60 * 60 * 1000); // 1 day later
+
+        document.getElementById('issueDate').innerText = issueDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        document.getElementById('dueDate').innerText = dueDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+        // Populate details
+        document.getElementById('studentName').innerText = inv.student?.name || '--';
+        document.getElementById('tutorName').innerText = inv.teacher?.name || '--';
+        document.getElementById('className').innerText = inv.className || '--';
+        document.getElementById('month').innerText = inv.month || '--';
+        document.getElementById('amount').innerText = inv.payment ? inv.payment.toFixed(2) : '--';
+        document.getElementById('bankAccount').innerText = inv.bankAccountNo || '--';
+        document.getElementById('bankName').innerText = inv.bankName || '--';
+
+        // Populate totals
+        const payment = inv.payment || 0;
+        const discount = inv.discount || 0;
+        const total = inv.total || 0;
+
+        document.getElementById('subTotal').innerText = payment.toFixed(2);
+        document.getElementById('totalDiscount').innerText = discount.toFixed(2);
+        document.getElementById('amountDue').innerText = total.toFixed(2);
+
+        // Store invoice data for PDF
+        window.invoiceData = {
+          studentName: inv.student?.name || '--',
+          tutorName: inv.teacher?.name || '--',
+          month: inv.month || '--',
+          payment: payment.toFixed(2),
+          discount: discount.toFixed(2),
+          total: total.toFixed(2),
+          bankAccount: inv.bankAccountNo || '--',
+          bankName: inv.bankName || '--',
+          issueDate: document.getElementById('issueDate').innerText,
+          dueDate: document.getElementById('dueDate').innerText
+        };
       } catch (err) {
-        document.getElementById('root').innerText = 'Error: ' + err.message;
+        alert('Error loading invoice: ' + err.message);
       }
     }
 
-    load();
+    function downloadPDF() {
+      const element = document.getElementById('invoice');
+      const opt = {
+        margin: 10,
+        filename: 'invoice-' + (window.invoiceData?.month || 'invoice').replace(/\s+/g, '-') + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    }
+
+    // Load invoice on page load
+    loadInvoice();
   </script>
 </body>
 </html>

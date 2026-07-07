@@ -235,6 +235,7 @@
             <div class="form-group"><label>Discount</label><input id="invoiceDiscount" type="number" placeholder="0" min="0"></div>
             <div class="form-group"><label>Bank Account No</label><input id="invoiceBankAccount" placeholder="00620095011441010"></div>
             <div class="form-group"><label>Bank Name</label><input id="invoiceBankName" placeholder="Al Habib Bank"></div>
+            <div class="form-group"><label>Class</label><input id="invoiceClass" placeholder="SSC-I"></div>
           </div>
           <div class="inline-actions">
             <button class="button-primary" onclick="createInvoice()">Generate Invoice</button>
@@ -250,6 +251,7 @@
                 <th>Student</th>
                 <th>Teacher</th>
                 <th>Month</th>
+                <th>Class</th>
                 <th>Payment</th>
                 <th>Discount</th>
                 <th>Bank Account</th>
@@ -363,6 +365,7 @@
           <td>${inv.student?.name || 'N/A'}</td>
           <td>${inv.teacher?.name || 'N/A'}</td>
           <td>${inv.month}</td>
+          <td>${inv.className || 'N/A'}</td>
           <td>${inv.payment}</td>
           <td>${inv.discount}</td>
           <td>${inv.bankAccountNo || ''}</td>
@@ -445,6 +448,20 @@
     }
 
     async function createInvoice() {
+      // Test - log all form values
+      console.log('=== INVOICE DEBUG ===');
+      console.log('Student Select value:', document.getElementById('invoiceStudentSelect').value);
+      console.log('Teacher Select value:', document.getElementById('invoiceTeacherSelect').value);
+      console.log('Month value:', document.getElementById('invoiceMonth').value);
+      console.log('Payment value:', document.getElementById('invoicePayment').value);
+      console.log('Discount value:', document.getElementById('invoiceDiscount').value);
+      console.log('Bank Account value:', document.getElementById('invoiceBankAccount').value);
+      console.log('Bank Name value:', document.getElementById('invoiceBankName').value);
+      console.log('Class input element:', document.getElementById('invoiceClass'));
+      console.log('Class value:', document.getElementById('invoiceClass').value);
+      console.log('Class value trimmed:', document.getElementById('invoiceClass').value.trim());
+      console.log('=== END DEBUG ===');
+      
       const studentId = document.getElementById('invoiceStudentSelect').value;
       const teacherId = document.getElementById('invoiceTeacherSelect').value;
       const month = document.getElementById('invoiceMonth').value.trim();
@@ -452,6 +469,9 @@
       const discount = document.getElementById('invoiceDiscount').value.trim();
       const bankAccountNo = document.getElementById('invoiceBankAccount').value.trim();
       const bankName = document.getElementById('invoiceBankName').value.trim();
+      const classElement = document.getElementById('invoiceClass');
+      const className = classElement ? classElement.value.trim() : '';
+      console.log('Class element found:', !!classElement, 'className value:', className);
       const msgEl = document.getElementById('invoiceMsg');
 
       msgEl.innerText = '';
@@ -459,11 +479,17 @@
         msgEl.innerText = 'Student, teacher, month, and payment are required.';
         return;
       }
+      
+      // Log that we have all required fields
+      console.log('All validations passed, className before sending:', className);
 
       try {
+        const payload = { studentId, teacherId, month, payment, discount, bankAccountNo, bankName, className };
+        console.log('Invoice payload:', payload);
+        console.log('className in payload:', className, 'type:', typeof className);
         const res = await fetch('/api/invoices/create', {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ studentId, teacherId, month, payment, discount, bankAccountNo, bankName })
+          body: JSON.stringify(payload)
         });
 
         const text = await res.text();
@@ -472,6 +498,11 @@
           data = text ? JSON.parse(text) : {};
         } catch (parseErr) {
           data.error = text;
+        }
+        
+        console.log('Response from server:', data);
+        if (data.invoice) {
+          console.log('Saved invoice className:', data.invoice.className);
         }
 
         if (!res.ok) {
@@ -496,6 +527,7 @@
       document.getElementById('invoiceDiscount').value = '';
       document.getElementById('invoiceBankAccount').value = '';
       document.getElementById('invoiceBankName').value = '';
+      document.getElementById('invoiceClass').value = '';
       document.getElementById('invoiceMsg').innerText = '';
     }
 
