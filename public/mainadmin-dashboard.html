@@ -92,6 +92,7 @@
         <button data-tab="add-subadmin" onclick="selectTab('add-subadmin')">Add Sub Admin</button>
         <button data-tab="subjects" onclick="selectTab('subjects')">Subjects List</button>
         <button data-tab="chat" onclick="selectTab('chat')">Chat <span class="badge">New</span></button>
+        <button data-tab="invoices" onclick="selectTab('invoices')">Invoices</button>
         <button data-tab="expenses" onclick="selectTab('expenses')">Expenses</button>
       </div>
 
@@ -223,6 +224,31 @@
         </div>
       </section>
 
+      <section id="invoices" class="section">
+        <header><h3>Generate Invoice</h3></header>
+        <div class="card">
+          <div class="form-grid">
+            <div class="form-group"><label>Student</label><select id="invoiceStudentSelect"></select></div>
+            <div class="form-group"><label>Teacher</label><select id="invoiceTeacherSelect"></select></div>
+            <div class="form-group"><label>Month</label><input id="invoiceMonth" placeholder="March 2026"></div>
+            <div class="form-group"><label>Payment</label><input id="invoicePayment" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Discount</label><input id="invoiceDiscount" type="number" placeholder="0" min="0"></div>
+          </div>
+          <div class="inline-actions">
+            <button class="button-primary" onclick="createInvoice()">Generate Invoice</button>
+            <button class="button-secondary" onclick="clearInvoiceForm()">Clear</button>
+          </div>
+          <p id="invoiceMsg" class="note"></p>
+        </div>
+        <div class="card" style="margin-top:24px;">
+          <h3>Recent Invoices</h3>
+          <table class="table">
+            <thead><tr><th>Student</th><th>Teacher</th><th>Month</th><th>Payment</th><th>Discount</th><th>Total</th></tr></thead>
+            <tbody id="invoiceTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="expenses" class="section">
         <header><h3>Expenses</h3></header>
         <div class="card">
@@ -236,7 +262,7 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
-    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','add-subadmin','subjects','chat','expenses'];
+    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','add-subadmin','subjects','chat','invoices','expenses'];
 
     if (!token || role !== 'mainadmin') {
       window.location.href = '/login.html';
@@ -262,6 +288,7 @@
       renderTutorTable();
       populateSelects();
       renderSubjects();
+      loadInvoices();
     }
 
     function selectTab(tab) {
@@ -298,8 +325,8 @@
     
 
     function populateSelects() {
-      const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect')];
-      const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect')];
+      const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect')];
+      const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect'), document.getElementById('invoiceTeacherSelect')];
       studentSelects.forEach(select => {
         select.innerHTML = '<option value="">Select student</option>';
         window.students.forEach(s => { select.innerHTML += `<option value="${s._id}">${s.name} (${s.email})</option>`; });
@@ -307,6 +334,25 @@
       tutorSelects.forEach(select => {
         select.innerHTML = '<option value="">Select tutor</option>';
         window.tutors.forEach(t => { select.innerHTML += `<option value="${t._id}">${t.name} (${t.email})</option>`; });
+      });
+    }
+
+    async function loadInvoices() {
+      const res = await fetch('/api/invoices/list', { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      const body = document.getElementById('invoiceTableBody');
+      body.innerHTML = '';
+      if (!data.invoices) return;
+      data.invoices.forEach(inv => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${inv.student?.name || 'N/A'}</td>
+          <td>${inv.teacher?.name || 'N/A'}</td>
+          <td>${inv.month}</td>
+          <td>${inv.payment}</td>
+          <td>${inv.discount}</td>
+          <td>${inv.total}</td>`;
+        body.appendChild(tr);
       });
     }
 
@@ -378,6 +424,40 @@
       const data = await res.json();
       document.getElementById('subadminCreateMsg').innerText = data.message || data.error;
       if (res.ok) { clearAddSubadmin(); loadAllData(); }
+    }
+
+    async function createInvoice() {
+      const studentId = document.getElementById('invoiceStudentSelect').value;
+      const teacherId = document.getElementById('invoiceTeacherSelect').value;
+      const month = document.getElementById('invoiceMonth').value.trim();
+      const payment = document.getElementById('invoicePayment').value.trim();
+      const discount = document.getElementById('invoiceDiscount').value.trim();
+      const msgEl = document.getElementById('invoiceMsg');
+
+      if (!studentId || !teacherId || !month || payment === '') {
+        msgEl.innerText = 'Student, teacher, month, and payment are required.';
+        return;
+      }
+
+      const res = await fetch('/api/invoices/create', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ studentId, teacherId, month, payment, discount })
+      });
+      const data = await res.json();
+      msgEl.innerText = data.message || data.error;
+      if (res.ok) {
+        clearInvoiceForm();
+        loadInvoices();
+      }
+    }
+
+    function clearInvoiceForm() {
+      document.getElementById('invoiceStudentSelect').value = '';
+      document.getElementById('invoiceTeacherSelect').value = '';
+      document.getElementById('invoiceMonth').value = '';
+      document.getElementById('invoicePayment').value = '';
+      document.getElementById('invoiceDiscount').value = '';
+      document.getElementById('invoiceMsg').innerText = '';
     }
 
     function clearAddSubadmin() {
