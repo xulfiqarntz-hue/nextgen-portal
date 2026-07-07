@@ -434,20 +434,37 @@
       const discount = document.getElementById('invoiceDiscount').value.trim();
       const msgEl = document.getElementById('invoiceMsg');
 
+      msgEl.innerText = '';
       if (!studentId || !teacherId || !month || payment === '') {
         msgEl.innerText = 'Student, teacher, month, and payment are required.';
         return;
       }
 
-      const res = await fetch('/api/invoices/create', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ studentId, teacherId, month, payment, discount })
-      });
-      const data = await res.json();
-      msgEl.innerText = data.message || data.error;
-      if (res.ok) {
+      try {
+        const res = await fetch('/api/invoices/create', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ studentId, teacherId, month, payment, discount })
+        });
+
+        const text = await res.text();
+        let data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (parseErr) {
+          data.error = text;
+        }
+
+        if (!res.ok) {
+          const errorText = data.error || `${res.status} ${res.statusText}`;
+          msgEl.innerText = 'Invoice error: ' + errorText;
+          return;
+        }
+
+        msgEl.innerText = data.message || 'Invoice generated successfully.';
         clearInvoiceForm();
         loadInvoices();
+      } catch (err) {
+        msgEl.innerText = 'Unable to send invoice request: ' + err.message;
       }
     }
 

@@ -1,9 +1,14 @@
+console.log('Invoice route loaded');
 const express = require('express');
 const Invoice = require('../models/Invoice');
 const User = require('../models/User');
 const { verifyToken, allowRoles } = require('../middleware/auth');
 
 const router = express.Router();
+
+router.get('/dummy', (req, res) => {
+  res.json({ message: 'This is a dummy route for testing purposes.' });
+});
 
 router.post('/create', verifyToken, allowRoles('mainadmin'), async (req, res) => {
   try {

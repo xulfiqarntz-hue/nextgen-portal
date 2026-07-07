@@ -1,3 +1,4 @@
+console.log('Chat route loaded');
 const express = require('express');
 const Message = require('../models/Message');
 const { verifyToken, allowRoles } = require('../middleware/auth');
