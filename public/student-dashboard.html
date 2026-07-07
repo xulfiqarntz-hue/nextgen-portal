@@ -4,6 +4,7 @@
 <head>
   <title>Student Dashboard</title>
   <script src="https://meet.jit.si/external_api.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
     :root {
       --bg: #1E40AF;
@@ -446,12 +447,85 @@
       position: relative;
     }
 
-    .overlay-body iframe {
+    /* ── Canvas Whiteboard ── */
+    #wbCanvas {
+      display: block;
       width: 100%;
       height: 100%;
-      border: none;
-      display: block;
+      cursor: crosshair;
+      touch-action: none;
+      background: #fff;
     }
+
+    .wb-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .wb-toolbar label {
+      font-size: 0.78rem;
+      color: #6b7280;
+      font-weight: 600;
+    }
+
+    .wb-color-swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .wb-color-swatch.active { border-color: #1E3A8A; transform: scale(1.2); }
+
+    .wb-size-btn {
+      height: 28px;
+      padding: 0 10px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .wb-size-btn.active { background: #1E3A8A; color: #fff; border-color: #1E3A8A; }
+
+    .wb-action-btn {
+      height: 28px;
+      padding: 0 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .wb-action-btn:hover { background: #f0f4ff; }
+    .wb-action-btn.eraser { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+    .wb-action-btn.eraser.active { background: #dc2626; color: #fff; }
+
+    .wb-status {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .wb-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+    .wb-dot.offline { background: #f87171; }
 
     .overlay-loading {
       position: absolute;
@@ -560,21 +634,40 @@
         </div>
       </div>
 
-      <!-- ── Excalidraw Whiteboard Overlay ── -->
+      <!-- ── Shared Canvas Whiteboard Overlay ── -->
       <div id="whiteboardOverlay" class="tool-overlay">
         <div class="overlay-header">
           <div>
             <h3>🖊 Collaborative Whiteboard</h3>
-            <div class="overlay-meta" id="wbMeta">Loading…</div>
+            <div class="overlay-meta" id="wbMeta">Shared with your teacher</div>
           </div>
           <button class="btn-end" onclick="closeWhiteboard()">✕ Close</button>
+        </div>
+        <!-- Toolbar -->
+        <div class="wb-toolbar">
+          <label>Color:</label>
+          <button class="wb-color-swatch active" data-color="#1e3a8a" style="background:#1e3a8a" title="Blue" onclick="setWbColor('#1e3a8a',this)"></button>
+          <button class="wb-color-swatch" data-color="#000000" style="background:#000000" title="Black" onclick="setWbColor('#000000',this)"></button>
+          <button class="wb-color-swatch" data-color="#ef4444" style="background:#ef4444" title="Red" onclick="setWbColor('#ef4444',this)"></button>
+          <button class="wb-color-swatch" data-color="#22c55e" style="background:#22c55e" title="Green" onclick="setWbColor('#22c55e',this)"></button>
+          <button class="wb-color-swatch" data-color="#f59e0b" style="background:#f59e0b" title="Orange" onclick="setWbColor('#f59e0b',this)"></button>
+          <span style="width:1px;height:24px;background:#e5e7eb;margin:0 4px;"></span>
+          <label>Size:</label>
+          <button class="wb-size-btn" data-size="2" onclick="setWbSize(2,this)">S</button>
+          <button class="wb-size-btn active" data-size="4" onclick="setWbSize(4,this)">M</button>
+          <button class="wb-size-btn" data-size="10" onclick="setWbSize(10,this)">L</button>
+          <span style="width:1px;height:24px;background:#e5e7eb;margin:0 4px;"></span>
+          <button class="wb-action-btn eraser" id="wbEraserBtn" onclick="toggleWbEraser()">⬜ Eraser</button>
+          <button class="wb-action-btn" onclick="undoWb()">↩ Undo</button>
+          <button class="wb-action-btn" onclick="clearWb()">🗑 Clear All</button>
+          <div class="wb-status"><div class="wb-dot" id="wbDot"></div><span id="wbConnStatus">Connecting…</span></div>
         </div>
         <div class="overlay-body">
           <div class="overlay-loading" id="wbLoading">
             <div class="spinner"></div>
-            <span>Opening whiteboard…</span>
+            <span>Connecting to whiteboard…</span>
           </div>
-          <iframe id="wbFrame" allow="clipboard-read; clipboard-write"></iframe>
+          <canvas id="wbCanvas"></canvas>
         </div>
       </div>
     </section>
@@ -797,34 +890,223 @@
 
     /* ── Whiteboard ── */
 
-    async function openWhiteboard() {
-      if (!activeTeacherId) return;
+    let wbSocket = null;
+    let wbRoomId = null;
+    let wbDrawing = false;
+    let wbLastX = 0, wbLastY = 0;
+    let wbColor = '#1e3a8a';
+    let wbSize = 4;
+    let wbEraser = false;
+    let wbStrokes = [];       // local stroke history for undo
+    let wbCurrentStroke = null;
+
+    function getWbRoomId() {
       const [a, b] = getSortedIds();
-      const seed = 'ngp-wb-' + a + '-' + b;
-      // Excalidraw room ID: first 20 chars of hex of SHA-256 (it expects a room ID + encryption key)
-      const enc = new TextEncoder();
-      const buf = await crypto.subtle.digest('SHA-256', enc.encode(seed));
-      const hexArr = Array.from(new Uint8Array(buf));
-      const hex = hexArr.map(b => b.toString(16).padStart(2, '0')).join('');
-      const roomId = hex.slice(0, 20);
-      const roomKey = await deriveRoomKey(seed + '-key');
-      const wbUrl = 'https://excalidraw.com/#room=' + roomId + ',' + roomKey;
-      document.getElementById('wbMeta').innerText = 'Private room for this session';
-      document.getElementById('wbLoading').style.display = 'flex';
-      const frame = document.getElementById('wbFrame');
-      frame.src = '';
+      return 'ngp-wb-' + a + '-' + b;
+    }
+
+    function setWbColor(color, btn) {
+      wbColor = color;
+      wbEraser = false;
+      document.getElementById('wbEraserBtn').classList.remove('active');
+      document.querySelectorAll('.wb-color-swatch').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function setWbSize(size, btn) {
+      wbSize = size;
+      document.querySelectorAll('.wb-size-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function toggleWbEraser() {
+      wbEraser = !wbEraser;
+      document.getElementById('wbEraserBtn').classList.toggle('active', wbEraser);
+    }
+
+    function getWbCanvas() { return document.getElementById('wbCanvas'); }
+    function getWbCtx() { return getWbCanvas().getContext('2d'); }
+
+    function wbResizeCanvas() {
+      const canvas = getWbCanvas();
+      const parent = canvas.parentElement;
+      const imageData = getWbCtx().getImageData(0, 0, canvas.width, canvas.height);
+      canvas.width = parent.clientWidth;
+      canvas.height = parent.clientHeight;
+      getWbCtx().putImageData(imageData, 0, 0);
+    }
+
+    function wbReplayStrokes() {
+      const canvas = getWbCanvas();
+      const ctx = getWbCtx();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      wbStrokes.forEach(stroke => wbDrawStroke(stroke));
+    }
+
+    function wbDrawStroke(stroke) {
+      const ctx = getWbCtx();
+      ctx.strokeStyle = stroke.eraser ? '#ffffff' : stroke.color;
+      ctx.lineWidth = stroke.eraser ? stroke.size * 3 : stroke.size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      if (stroke.points && stroke.points.length > 0) {
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) {
+          ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function wbDrawSegment(x0, y0, x1, y1, color, size, eraser) {
+      const ctx = getWbCtx();
+      ctx.strokeStyle = eraser ? '#ffffff' : color;
+      ctx.lineWidth = eraser ? size * 3 : size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+    }
+
+    function wbPointerDown(e) {
+      wbDrawing = true;
+      const rect = getWbCanvas().getBoundingClientRect();
+      const scaleX = getWbCanvas().width / rect.width;
+      const scaleY = getWbCanvas().height / rect.height;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      wbLastX = (clientX - rect.left) * scaleX;
+      wbLastY = (clientY - rect.top) * scaleY;
+      wbCurrentStroke = { color: wbColor, size: wbSize, eraser: wbEraser, points: [{ x: wbLastX, y: wbLastY }] };
+    }
+
+    function wbPointerMove(e) {
+      if (!wbDrawing) return;
+      e.preventDefault();
+      const rect = getWbCanvas().getBoundingClientRect();
+      const scaleX = getWbCanvas().width / rect.width;
+      const scaleY = getWbCanvas().height / rect.height;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = (clientX - rect.left) * scaleX;
+      const y = (clientY - rect.top) * scaleY;
+      wbDrawSegment(wbLastX, wbLastY, x, y, wbColor, wbSize, wbEraser);
+      if (wbCurrentStroke) wbCurrentStroke.points.push({ x, y });
+      if (wbSocket) {
+        wbSocket.emit('wb:draw', { roomId: wbRoomId, stroke: { type: 'segment', x0: wbLastX, y0: wbLastY, x1: x, y1: y, color: wbColor, size: wbSize, eraser: wbEraser } });
+      }
+      wbLastX = x;
+      wbLastY = y;
+    }
+
+    function wbPointerUp() {
+      if (!wbDrawing) return;
+      wbDrawing = false;
+      if (wbCurrentStroke) {
+        wbStrokes.push(wbCurrentStroke);
+        wbCurrentStroke = null;
+      }
+    }
+
+    function undoWb() {
+      if (!wbStrokes.length) return;
+      wbStrokes.pop();
+      wbReplayStrokes();
+      if (wbSocket) wbSocket.emit('wb:undo', wbRoomId);
+    }
+
+    function clearWb() {
+      wbStrokes = [];
+      const canvas = getWbCanvas();
+      getWbCtx().clearRect(0, 0, canvas.width, canvas.height);
+      if (wbSocket) wbSocket.emit('wb:clear', wbRoomId);
+    }
+
+    function openWhiteboard() {
+      if (!activeTeacherId) return;
+      wbRoomId = getWbRoomId();
       document.getElementById('whiteboardOverlay').classList.add('open');
+      document.getElementById('wbLoading').style.display = 'flex';
+
+      const canvas = getWbCanvas();
+      const parent = canvas.parentElement;
+      // Set canvas resolution
       setTimeout(() => {
-        frame.src = wbUrl;
-        frame.onload = () => { document.getElementById('wbLoading').style.display = 'none'; };
-      }, 300);
+        canvas.width = parent.clientWidth || 800;
+        canvas.height = parent.clientHeight || 500;
+
+        // Wire up drawing events
+        canvas.onmousedown = wbPointerDown;
+        canvas.onmousemove = wbPointerMove;
+        canvas.onmouseup = wbPointerUp;
+        canvas.onmouseleave = wbPointerUp;
+        canvas.ontouchstart = wbPointerDown;
+        canvas.ontouchmove = wbPointerMove;
+        canvas.ontouchend = wbPointerUp;
+
+        // Connect Socket.IO
+        if (!wbSocket || !wbSocket.connected) {
+          wbSocket = io();
+          wbSocket.on('connect', () => {
+            document.getElementById('wbDot').className = 'wb-dot';
+            document.getElementById('wbConnStatus').innerText = 'Connected · Live';
+            wbSocket.emit('wb:join', wbRoomId);
+          });
+          wbSocket.on('disconnect', () => {
+            document.getElementById('wbDot').className = 'wb-dot offline';
+            document.getElementById('wbConnStatus').innerText = 'Disconnected';
+          });
+          // Receive full board state when joining
+          wbSocket.on('wb:state', (state) => {
+            document.getElementById('wbLoading').style.display = 'none';
+            wbStrokes = state.strokes || [];
+            // Replay as segments from stored strokes
+            wbStrokes.forEach(stroke => {
+              if (stroke.type === 'segment') {
+                wbDrawSegment(stroke.x0, stroke.y0, stroke.x1, stroke.y1, stroke.color, stroke.size, stroke.eraser);
+              }
+            });
+          });
+          // Receive individual stroke from peer
+          wbSocket.on('wb:draw', (stroke) => {
+            if (stroke.type === 'segment') {
+              wbDrawSegment(stroke.x0, stroke.y0, stroke.x1, stroke.y1, stroke.color, stroke.size, stroke.eraser);
+              wbStrokes.push(stroke);
+            }
+          });
+          wbSocket.on('wb:clear', () => {
+            wbStrokes = [];
+            const c = getWbCanvas();
+            getWbCtx().clearRect(0, 0, c.width, c.height);
+          });
+          wbSocket.on('wb:undo', () => {
+            if (wbStrokes.length) wbStrokes.pop();
+            // Redraw all remaining segments
+            const c = getWbCanvas();
+            getWbCtx().clearRect(0, 0, c.width, c.height);
+            wbStrokes.forEach(s => {
+              if (s.type === 'segment') wbDrawSegment(s.x0, s.y0, s.x1, s.y1, s.color, s.size, s.eraser);
+            });
+          });
+        } else {
+          wbSocket.emit('wb:join', wbRoomId);
+          document.getElementById('wbLoading').style.display = 'none';
+        }
+
+        // If no state received after 1s, hide loader (empty board)
+        setTimeout(() => { document.getElementById('wbLoading').style.display = 'none'; }, 1200);
+      }, 150);
     }
 
     function closeWhiteboard() {
       const overlay = document.getElementById('whiteboardOverlay');
       if (!overlay.classList.contains('open')) return;
-      document.getElementById('wbFrame').src = '';
       overlay.classList.remove('open');
+      // Disconnect socket cleanly
+      if (wbSocket) { wbSocket.disconnect(); wbSocket = null; }
     }
 
     async function loadMessages() {
