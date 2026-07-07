@@ -197,17 +197,17 @@
   <script>
     // Load saved credentials if Remember me was checked
     window.addEventListener('DOMContentLoaded', function() {
-      const savedEmail = localStorage.getItem('rememberedEmail');
+      const savedID = localStorage.getItem('rememberedID');
       const rememberMe = localStorage.getItem('rememberMe') === 'true';
       
-      if (rememberMe && savedEmail) {
-        document.getElementById('email').value = savedEmail;
+      if (rememberMe && savedID) {
+        document.getElementById('email').value = savedID;
         document.getElementById('rememberMe').checked = true;
       }
     });
     
     async function login() {
-      const email = document.getElementById('email').value.trim();
+      const id = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
       const rememberMe = document.getElementById('rememberMe').checked;
       const messageEl = document.getElementById('message');
@@ -215,8 +215,8 @@
       messageEl.innerText = '';
       messageEl.className = '';
 
-      if (!email || !password) {
-        messageEl.innerText = 'Please enter both email and password';
+      if (!id || !password) {
+        messageEl.innerText = 'Please enter both ID and password';
         messageEl.className = 'error';
         return;
       }
@@ -225,7 +225,7 @@
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email: id, password })
         });
 
         const data = await res.json();
@@ -233,10 +233,10 @@
         if (res.ok) {
           // Save remember me preference
           if (rememberMe) {
-            localStorage.setItem('rememberedEmail', email);
+            localStorage.setItem('rememberedID', id);
             localStorage.setItem('rememberMe', 'true');
           } else {
-            localStorage.removeItem('rememberedEmail');
+            localStorage.removeItem('rememberedID');
             localStorage.setItem('rememberMe', 'false');
           }
           
