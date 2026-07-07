@@ -244,6 +244,11 @@
           localStorage.setItem('token', data.token);
           localStorage.setItem('role', data.role);
           localStorage.setItem('name', data.name);
+          // Decode JWT payload to extract our own MongoDB _id (used for call/whiteboard rooms)
+          try {
+            const payload = JSON.parse(atob(data.token.split('.')[1]));
+            localStorage.setItem('userId', payload.id);
+          } catch (_) {}
 
           messageEl.innerText = 'Login successful! Redirecting...';
           messageEl.className = 'success';

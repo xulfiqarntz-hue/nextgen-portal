@@ -3,6 +3,7 @@
 
 <head>
   <title>Student Dashboard</title>
+  <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     :root {
       --bg: #1E40AF;
@@ -338,6 +339,147 @@
       line-height: 1;
     }
 
+    /* ── Call & Whiteboard action bar ── */
+    .chat-action-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 28px;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+      background: #f0f4ff;
+    }
+
+    .chat-action-bar.visible {
+      display: flex;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 18px;
+      height: 38px;
+      border: none;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-action:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(30,58,138,0.18);
+    }
+
+    .btn-call {
+      background: #1E3A8A;
+      color: #fff;
+    }
+
+    .btn-whiteboard {
+      background: #fff;
+      color: #1E3A8A;
+      border: 1.5px solid #1E3A8A;
+    }
+
+    /* ── Overlay panels (cover the main-panel area) ── */
+    .tool-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      flex-direction: column;
+      background: #fff;
+    }
+
+    .tool-overlay.open {
+      display: flex;
+    }
+
+    .overlay-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: #1E3A8A;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .overlay-header h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .overlay-header .overlay-meta {
+      font-size: 0.82rem;
+      opacity: 0.75;
+      margin-top: 2px;
+    }
+
+    .btn-end {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 16px;
+      height: 36px;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #ef4444;
+      color: #fff;
+      transition: transform 0.15s ease;
+    }
+
+    .btn-end:hover { transform: scale(0.96); }
+
+    .overlay-body {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+
+    .overlay-body iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .overlay-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: #6b7280;
+      font-size: 0.95rem;
+      background: #f8fafc;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #1E3A8A;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* make main-panel a positioning context for overlays */
+    .main-panel { position: relative; }
+
     @media (max-width: 960px) {
       .layout {
         grid-template-columns: 1fr;
@@ -373,6 +515,22 @@
         <p id="chatTitle">Select a teacher to begin</p>
       </div>
 
+      <!-- Action toolbar (Call + Whiteboard) -->
+      <div id="actionBar" class="chat-action-bar">
+        <button id="btnCall" class="btn-action btn-call" onclick="startCall()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M3.654 1.328a.678.678 0 0 0-1.015-.063L1.605 2.3c-.483.484-.661 1.169-.45 1.77a17.6 17.6 0 0 0 4.168 6.608 17.6 17.6 0 0 0 6.608 4.168c.601.211 1.286.033 1.77-.45l1.034-1.034a.678.678 0 0 0-.063-1.015l-2.307-1.794a.68.68 0 0 0-.58-.122l-2.19.547a1.75 1.75 0 0 1-1.657-.459L5.482 8.062a1.75 1.75 0 0 1-.46-1.657l.548-2.19a.68.68 0 0 0-.122-.58z"/>
+          </svg>
+          Start Call
+        </button>
+        <button id="btnWhiteboard" class="btn-action btn-whiteboard" onclick="openWhiteboard()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11z"/>
+          </svg>
+          Whiteboard
+        </button>
+      </div>
+
       <div class="chat-window">
         <div id="chatSection" style="display:none;">
           <div id="chatBox" class="messages"></div>
@@ -383,6 +541,42 @@
         <input id="chatInput" type="text" placeholder="Type a message..." onkeydown="handleMessageKeydown(event)">
         <button class="btn-send" onclick="sendMessage()" aria-label="Send message">➤</button>
       </div>
+
+      <!-- ── Jitsi Call Overlay ── -->
+      <div id="callOverlay" class="tool-overlay">
+        <div class="overlay-header">
+          <div>
+            <h3>📞 Audio Call</h3>
+            <div class="overlay-meta" id="callMeta">Connecting…</div>
+          </div>
+          <button class="btn-end" onclick="endCall()">✕ End Call</button>
+        </div>
+        <div class="overlay-body">
+          <div class="overlay-loading" id="callLoading">
+            <div class="spinner"></div>
+            <span>Starting call…</span>
+          </div>
+          <div id="callContainer" style="width:100%;height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- ── Excalidraw Whiteboard Overlay ── -->
+      <div id="whiteboardOverlay" class="tool-overlay">
+        <div class="overlay-header">
+          <div>
+            <h3>🖊 Collaborative Whiteboard</h3>
+            <div class="overlay-meta" id="wbMeta">Loading…</div>
+          </div>
+          <button class="btn-end" onclick="closeWhiteboard()">✕ Close</button>
+        </div>
+        <div class="overlay-body">
+          <div class="overlay-loading" id="wbLoading">
+            <div class="spinner"></div>
+            <span>Opening whiteboard…</span>
+          </div>
+          <iframe id="wbFrame" allow="clipboard-read; clipboard-write"></iframe>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -390,6 +584,7 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
+    const myUserId = localStorage.getItem('userId') || '';
     const readStateKey = 'studentTeacherReadAt';
     let teachers = [];
     let activeTeacherId = null;
@@ -493,9 +688,143 @@
       document.getElementById('chatTitle').innerText = teacherName;
       document.getElementById('chatSection').style.display = 'flex';
       document.getElementById('bottomBar').classList.remove('hidden');
+      document.getElementById('actionBar').classList.add('visible');
+      // Close any open overlays when switching chats
+      endCall();
+      closeWhiteboard();
       loadMessages();
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = setInterval(loadMessages, 3000);
+    }
+
+    /* ── Room helpers ── */
+
+    /** Returns [idA, idB] sorted so the order is always the same regardless of who opens first */
+    function getSortedIds() {
+      const ids = [myUserId, activeTeacherId].sort();
+      return ids;
+    }
+
+    /** Derives a stable 22-char base64url key from a string using SHA-256 */
+    async function deriveRoomKey(seed) {
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest('SHA-256', enc.encode(seed));
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      // base64url, trimmed to 22 chars (Excalidraw expects ~22 chars)
+      return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '').slice(0, 22);
+    }
+
+    /* ── Call ── */
+
+    let jitsiApi = null;
+
+    function startCall() {
+      if (!activeTeacherId) return;
+      const [a, b] = getSortedIds();
+      const roomName = 'ngp-call-' + a + '-' + b;
+
+      document.getElementById('callMeta').innerText = 'With your teacher — Room ready';
+      document.getElementById('callLoading').style.display = 'flex';
+      document.getElementById('callOverlay').classList.add('open');
+
+      // Dispose any existing session first
+      if (jitsiApi) { try { jitsiApi.dispose(); } catch(_) {} jitsiApi = null; }
+
+      setTimeout(() => {
+        const container = document.getElementById('callContainer');
+        container.innerHTML = '';
+        const loader = document.getElementById('callLoading');
+
+        // Guaranteed fallback: always hide spinner after 4 s
+        // so Jitsi is never permanently blocked by the overlay
+        const hideLoader = () => { loader.style.display = 'none'; };
+        const fallbackTimer = setTimeout(hideLoader, 4000);
+
+        try {
+          jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {
+            roomName: roomName,
+            width: '100%',
+            height: '100%',
+            parentNode: container,
+            configOverwrite: {
+              startWithVideoMuted: true,
+              startWithAudioMuted: false,
+              prejoinPageEnabled: false,
+              prejoinConfig: { enabled: false },
+              disableDeepLinking: true,
+              enableWelcomePage: false,
+              enableClosePage: false,
+              disableInitialGUM: false,
+              enableNoAudioDetection: false,
+              enableNoisyMicDetection: false,
+              requireDisplayName: false,
+              disableAudioLevels: false,
+              p2p: { enabled: true },
+            },
+            interfaceConfigOverwrite: {
+              TOOLBAR_BUTTONS: ['microphone', 'hangup', 'fullscreen', 'fodeviceselection'],
+              SHOW_JITSI_WATERMARK: false,
+              SHOW_WATERMARK_FOR_GUESTS: false,
+              SHOW_BRAND_WATERMARK: false,
+              DISPLAY_WELCOME_PAGE_CONTENT: false,
+              SHOW_PROMOTIONAL_CLOSE_PAGE: false,
+              HIDE_INVITE_MORE_HEADER: true,
+            }
+          });
+
+          const onReady = () => { clearTimeout(fallbackTimer); hideLoader(); };
+          jitsiApi.addEventListener('videoConferenceJoined', onReady);
+          jitsiApi.addEventListener('audioMuteStatusChanged', onReady);
+          jitsiApi.addEventListener('readyToClose', () => { endCall(); });
+        } catch(err) {
+          clearTimeout(fallbackTimer);
+          hideLoader();
+          document.getElementById('callMeta').innerText = 'Could not start call: ' + err.message;
+        }
+      }, 400);
+    }
+
+    function endCall() {
+      const overlay = document.getElementById('callOverlay');
+      if (!overlay.classList.contains('open')) return;
+      if (jitsiApi) {
+        try { jitsiApi.dispose(); } catch(_) {}
+        jitsiApi = null;
+      }
+      document.getElementById('callContainer').innerHTML = '';
+      overlay.classList.remove('open');
+    }
+
+    /* ── Whiteboard ── */
+
+    async function openWhiteboard() {
+      if (!activeTeacherId) return;
+      const [a, b] = getSortedIds();
+      const seed = 'ngp-wb-' + a + '-' + b;
+      // Excalidraw room ID: first 20 chars of hex of SHA-256 (it expects a room ID + encryption key)
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest('SHA-256', enc.encode(seed));
+      const hexArr = Array.from(new Uint8Array(buf));
+      const hex = hexArr.map(b => b.toString(16).padStart(2, '0')).join('');
+      const roomId = hex.slice(0, 20);
+      const roomKey = await deriveRoomKey(seed + '-key');
+      const wbUrl = 'https://excalidraw.com/#room=' + roomId + ',' + roomKey;
+      document.getElementById('wbMeta').innerText = 'Private room for this session';
+      document.getElementById('wbLoading').style.display = 'flex';
+      const frame = document.getElementById('wbFrame');
+      frame.src = '';
+      document.getElementById('whiteboardOverlay').classList.add('open');
+      setTimeout(() => {
+        frame.src = wbUrl;
+        frame.onload = () => { document.getElementById('wbLoading').style.display = 'none'; };
+      }, 300);
+    }
+
+    function closeWhiteboard() {
+      const overlay = document.getElementById('whiteboardOverlay');
+      if (!overlay.classList.contains('open')) return;
+      document.getElementById('wbFrame').src = '';
+      overlay.classList.remove('open');
     }
 
     async function loadMessages() {
