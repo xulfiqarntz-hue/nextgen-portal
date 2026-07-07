@@ -38,10 +38,9 @@ io.on('connection', (socket) => {
   // Join a whiteboard room (roomId = sorted teacherId + studentId)
   socket.on('wb:join', (roomId) => {
     socket.join(roomId);
-    // Send the current board state to the newly joined user
-    if (whiteboardRooms[roomId]) {
-      socket.emit('wb:state', whiteboardRooms[roomId]);
-    }
+    // Always send current board state (empty or not) to the newly joined user
+    const state = whiteboardRooms[roomId] || { strokes: [] };
+    socket.emit('wb:state', state);
   });
 
   // Complete element (freehand path, shape, text) – persisted for late-joiners
