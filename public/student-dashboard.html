@@ -398,6 +398,25 @@
       display: flex;
     }
 
+    #callOverlay.minimized {
+      top: auto;
+      left: auto;
+      bottom: 24px;
+      right: 24px;
+      width: 380px;
+      height: 280px;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      border: 1px solid rgba(0,0,0,0.1);
+      z-index: 50;
+    }
+    #callOverlay.minimized .overlay-header {
+      padding: 8px 16px;
+    }
+    #callOverlay.minimized .overlay-header h3 {
+      font-size: 14px;
+    }
+
     .overlay-header {
       display: flex;
       align-items: center;
@@ -826,7 +845,11 @@
             <h3>📞 Audio Call</h3>
             <div class="overlay-meta" id="callMeta">Connecting…</div>
           </div>
-          <button class="btn-end" onclick="endCall()">✕ End Call</button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button onclick="openWhiteboardFromCall()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Open Whiteboard">🖊 <span class="min-text">Whiteboard</span></button>
+            <button onclick="toggleMinimizeCall()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Minimize Call">🔽 <span class="min-text">Minimize</span></button>
+            <button class="btn-end" onclick="endCall()">✕ End Call</button>
+          </div>
         </div>
         <div class="overlay-body">
           <div class="overlay-loading" id="callLoading">
@@ -1173,6 +1196,20 @@
       }
       document.getElementById('callContainer').innerHTML = '';
       overlay.classList.remove('open');
+      overlay.classList.remove('minimized');
+    }
+
+    function toggleMinimizeCall() {
+      const overlay = document.getElementById('callOverlay');
+      overlay.classList.toggle('minimized');
+    }
+
+    function openWhiteboardFromCall() {
+      const overlay = document.getElementById('callOverlay');
+      if (!overlay.classList.contains('minimized')) {
+        overlay.classList.add('minimized');
+      }
+      openWhiteboard();
     }
 
     /* ══════════════════════════════════════════
