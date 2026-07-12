@@ -1152,6 +1152,8 @@
       if (document.getElementById('excalidrawContainer').hasChildNodes()) return; // Already initialized
 
       let lastEmittedVersion = 0;
+      let syncTimeout = null;
+      let latestElements = null;
       const getElementsVersion = (elements) => elements.reduce((acc, el) => acc + (el.version || 0), 0);
 
       const e = React.createElement;
@@ -1169,10 +1171,16 @@
               
               const currentVersion = getElementsVersion(elements);
               if (currentVersion === lastEmittedVersion) return; // No actual element changes
-              lastEmittedVersion = currentVersion;
-
-              if (wbSocket && wbSocket.connected && wbRoomId) {
-                wbSocket.emit('wb:update', { roomId: wbRoomId, elements });
+              
+              latestElements = elements;
+              if (!syncTimeout) {
+                syncTimeout = setTimeout(() => {
+                  syncTimeout = null;
+                  lastEmittedVersion = getElementsVersion(latestElements);
+                  if (wbSocket && wbSocket.connected && wbRoomId) {
+                    wbSocket.emit('wb:update', { roomId: wbRoomId, elements: latestElements });
+                  }
+                }, 150);
               }
             }
           }
