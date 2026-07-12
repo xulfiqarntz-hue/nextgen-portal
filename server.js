@@ -48,6 +48,7 @@ io.on('connection', (socket) => {
   // Committed stroke — persisted on the correct page
   socket.on('wb:draw', ({ roomId, page, stroke }) => {
     const room = getRoom(roomId);
+    page = parseInt(page, 10) || 0;
     while (room.pages.length <= page) room.pages.push([]);
     room.pages[page].push(stroke);
     socket.to(roomId).emit('wb:draw', { page, stroke });
@@ -61,6 +62,7 @@ io.on('connection', (socket) => {
   // Undo last stroke on a page
   socket.on('wb:undo', ({ roomId, page }) => {
     const room = getRoom(roomId);
+    page = parseInt(page, 10) || 0;
     if (room.pages[page] && room.pages[page].length) room.pages[page].pop();
     socket.to(roomId).emit('wb:undo', { page });
   });
@@ -68,6 +70,7 @@ io.on('connection', (socket) => {
   // Clear a single page
   socket.on('wb:clear', ({ roomId, page }) => {
     const room = getRoom(roomId);
+    page = parseInt(page, 10) || 0;
     if (room.pages[page]) room.pages[page] = [];
     socket.to(roomId).emit('wb:clear', { page });
   });
