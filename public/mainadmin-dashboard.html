@@ -346,7 +346,7 @@
 
     function populateSelects() {
       const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect')];
-      const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect'), document.getElementById('invoiceTeacherSelect')];
+      const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect')];
       studentSelects.forEach(select => {
         select.innerHTML = '<option value="">Select student</option>';
         window.students.forEach(s => { select.innerHTML += `<option value="${s._id}">${s.name} (${s.email})</option>`; });
@@ -515,7 +515,6 @@
 
     function clearInvoiceForm() {
       document.getElementById('invoiceStudentSelect').value = '';
-      document.getElementById('invoiceTeacherSelect').value = '';
       document.getElementById('invoiceMonth').value = '';
       for (let i = 1; i <= 4; i++) {
         document.getElementById('invSub' + i + 'Name').value = '';
