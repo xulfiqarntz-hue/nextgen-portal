@@ -7,10 +7,13 @@
   <script src="/socket.io/socket.io.js"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@excalidraw/excalidraw/dist/excalidraw.production.min.js"></script>
+  <script src="https://unpkg.com/@excalidraw/excalidraw@0.17.3/dist/excalidraw.production.min.js"></script>
   <script>
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      alert("Error: " + msg + "\nLine: " + lineNo + "\nCol: " + columnNo + "\n" + (error ? error.stack : ""));
+    };
     window.process = { env: { NODE_ENV: "production" } };
-    window.EXCALIDRAW_ASSET_PATH = "https://unpkg.com/@excalidraw/excalidraw/dist/";
+    window.EXCALIDRAW_ASSET_PATH = "https://unpkg.com/@excalidraw/excalidraw@0.17.3/dist/";
   </script>
   <style>
     :root {
