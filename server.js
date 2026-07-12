@@ -30,11 +30,11 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api', assignRoutes);
 
-// ── Shared Whiteboard via Socket.IO (multi-page) ──
+// ── Shared Whiteboard via Socket.IO ──
 const whiteboardRooms = {};
 
 function getRoom(roomId) {
-  if (!whiteboardRooms[roomId]) whiteboardRooms[roomId] = { pages: [[]] };
+  if (!whiteboardRooms[roomId]) whiteboardRooms[roomId] = { strokes: [] };
   return whiteboardRooms[roomId];
 }
 
@@ -46,40 +46,29 @@ io.on('connection', (socket) => {
   });
 
   // Committed stroke — persisted on the correct page
-  socket.on('wb:draw', ({ roomId, page, stroke }) => {
+  socket.on('wb:draw', ({ roomId, stroke }) => {
     const room = getRoom(roomId);
-    page = parseInt(page, 10) || 0;
-    while (room.pages.length <= page) room.pages.push([]);
-    room.pages[page].push(stroke);
-    socket.to(roomId).emit('wb:draw', { page, stroke });
+    room.strokes.push(stroke);
+    socket.to(roomId).emit('wb:draw', stroke);
   });
 
   // Live freehand — forwarded only, NOT persisted
-  socket.on('wb:live', ({ roomId, page, seg }) => {
-    socket.to(roomId).emit('wb:live', { page, seg });
+  socket.on('wb:live', ({ roomId, seg }) => {
+    socket.to(roomId).emit('wb:live', seg);
   });
 
-  // Undo last stroke on a page
-  socket.on('wb:undo', ({ roomId, page }) => {
+  // Undo last stroke
+  socket.on('wb:undo', ({ roomId }) => {
     const room = getRoom(roomId);
-    page = parseInt(page, 10) || 0;
-    if (room.pages[page] && room.pages[page].length) room.pages[page].pop();
-    socket.to(roomId).emit('wb:undo', { page });
+    if (room.strokes && room.strokes.length) room.strokes.pop();
+    socket.to(roomId).emit('wb:undo');
   });
 
-  // Clear a single page
-  socket.on('wb:clear', ({ roomId, page }) => {
+  // Clear
+  socket.on('wb:clear', ({ roomId }) => {
     const room = getRoom(roomId);
-    page = parseInt(page, 10) || 0;
-    if (room.pages[page]) room.pages[page] = [];
-    socket.to(roomId).emit('wb:clear', { page });
-  });
-
-  // Add a new blank page
-  socket.on('wb:addPage', (roomId) => {
-    const room = getRoom(roomId);
-    room.pages.push([]);
-    socket.to(roomId).emit('wb:addPage', room.pages.length - 1);
+    room.strokes = [];
+    socket.to(roomId).emit('wb:clear');
   });
 });
 
