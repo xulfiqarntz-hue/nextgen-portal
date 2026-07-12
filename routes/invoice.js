@@ -12,16 +12,19 @@ router.get('/dummy', (req, res) => {
 
 router.post('/create', verifyToken, allowRoles('mainadmin'), async (req, res) => {
   try {
-    const { studentId, teacherId, month, payment, subjects, discount, bankAccountNo, bankName, className } = req.body;
+    const { studentId, teacherId, month, payment, subjects, discount, arrears, bankAccountNo, bankName, className } = req.body;
     console.log('Invoice create request - className:', className);
-    if (!studentId || !teacherId || !month) {
-      return res.status(400).json({ error: 'Student, teacher, and month are required.' });
+    if (!studentId || !month) {
+      return res.status(400).json({ error: 'Student and month are required.' });
     }
 
     const student = await User.findById(studentId);
-    const teacher = await User.findById(teacherId);
+    let teacher = null;
+    if (teacherId) {
+      teacher = await User.findById(teacherId);
+      if (!teacher || teacher.role !== 'teacher') return res.status(400).json({ error: 'Invalid teacher selected.' });
+    }
     if (!student || student.role !== 'student') return res.status(400).json({ error: 'Invalid student selected.' });
-    if (!teacher || teacher.role !== 'teacher') return res.status(400).json({ error: 'Invalid teacher selected.' });
 
     let paymentNumber = 0;
     let finalSubjects = [];
@@ -38,18 +41,20 @@ router.post('/create', verifyToken, allowRoles('mainadmin'), async (req, res) =>
     }
 
     const discountNumber = Number(discount) || 0;
+    const arrearsNumber = Number(arrears) || 0;
     if (isNaN(paymentNumber) || paymentNumber < 0) return res.status(400).json({ error: 'Valid payment or subjects are required.' });
     if (isNaN(discountNumber) || discountNumber < 0) return res.status(400).json({ error: 'Discount must be a valid number.' });
 
-    const total = paymentNumber - discountNumber;
+    const total = paymentNumber - discountNumber + arrearsNumber;
 
     const invoice = new Invoice({
       student: student._id,
-      teacher: teacher._id,
+      teacher: teacher ? teacher._id : undefined,
       month,
       payment: paymentNumber,
       subjects: finalSubjects,
       discount: discountNumber,
+      arrears: arrearsNumber,
       bankAccountNo: bankAccountNo || '',
       bankName: bankName || '',
       className: className || '',

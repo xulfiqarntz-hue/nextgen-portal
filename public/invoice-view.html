@@ -99,17 +99,13 @@
     <!-- Student & Tutor Details -->
     <div class="section-title">Invoice Details</div>
     <div class="details-row">
-      <div class="detail-item">
-        <div class="detail-label">Student Name</div>
-        <div class="detail-value" id="studentName">--</div>
+      <div style="flex:1;">
+        <p>Student Name</p>
+        <p class="value" id="studentName">--</p>
       </div>
-      <div class="detail-item">
-        <div class="detail-label">Tutor Name</div>
-        <div class="detail-value" id="tutorName">--</div>
-      </div>
-      <div class="detail-item">
-        <div class="detail-label">Class</div>
-        <div class="detail-value" id="className">--</div>
+      <div style="flex:1; text-align:right;">
+        <p>Class</p>
+        <p class="value" id="className">--</p>
       </div>
     </div>
 
@@ -155,7 +151,7 @@
       </div>
       <div class="totals-row">
         <div class="totals-label">Arrears / Outstanding Bal</div>
-        <div class="totals-value">0.00</div>
+        <div class="totals-value" id="totalArrears">0.00</div>
       </div>
     </div>
 
@@ -214,7 +210,6 @@
 
         // Populate details
         document.getElementById('studentName').innerText = inv.student?.name || '--';
-        document.getElementById('tutorName').innerText = inv.teacher?.name || '--';
         document.getElementById('className').innerText = inv.className || '--';
 
         const tableBody = document.getElementById('itemsTableBody');
@@ -248,16 +243,17 @@
         // Populate totals
         const payment = inv.payment || 0;
         const discount = inv.discount || 0;
+        const arrears = inv.arrears || 0;
         const total = inv.total || 0;
 
         document.getElementById('subTotal').innerText = payment.toFixed(2);
         document.getElementById('totalDiscount').innerText = discount.toFixed(2);
+        document.getElementById('totalArrears').innerText = arrears.toFixed(2);
         document.getElementById('amountDue').innerText = total.toFixed(2);
 
         // Store invoice data for PDF
         window.invoiceData = {
           studentName: inv.student?.name || '--',
-          tutorName: inv.teacher?.name || '--',
           month: inv.month || '--',
           payment: payment.toFixed(2),
           discount: discount.toFixed(2),
