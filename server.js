@@ -34,7 +34,7 @@ app.use('/api', assignRoutes);
 const whiteboardRooms = {};
 
 function getRoom(roomId) {
-  if (!whiteboardRooms[roomId]) whiteboardRooms[roomId] = { strokes: [] };
+  if (!whiteboardRooms[roomId]) whiteboardRooms[roomId] = { elements: [] };
   return whiteboardRooms[roomId];
 }
 
@@ -45,30 +45,12 @@ io.on('connection', (socket) => {
     socket.emit('wb:state', getRoom(roomId));
   });
 
-  // Committed stroke — persisted on the correct page
-  socket.on('wb:draw', ({ roomId, stroke }) => {
+  // Update Excalidraw elements
+  socket.on('wb:update', ({ roomId, elements }) => {
     const room = getRoom(roomId);
-    room.strokes.push(stroke);
-    socket.to(roomId).emit('wb:draw', stroke);
-  });
-
-  // Live freehand — forwarded only, NOT persisted
-  socket.on('wb:live', ({ roomId, seg }) => {
-    socket.to(roomId).emit('wb:live', seg);
-  });
-
-  // Undo last stroke
-  socket.on('wb:undo', ({ roomId }) => {
-    const room = getRoom(roomId);
-    if (room.strokes && room.strokes.length) room.strokes.pop();
-    socket.to(roomId).emit('wb:undo');
-  });
-
-  // Clear
-  socket.on('wb:clear', ({ roomId }) => {
-    const room = getRoom(roomId);
-    room.strokes = [];
-    socket.to(roomId).emit('wb:clear');
+    room.elements = elements;
+    // Broadcast to other users in the room
+    socket.to(roomId).emit('wb:update', elements);
   });
 });
 
