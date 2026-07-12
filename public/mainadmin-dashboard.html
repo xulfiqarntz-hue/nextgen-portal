@@ -454,19 +454,6 @@
     }
 
     async function createInvoice() {
-      // Test - log all form values
-      console.log('=== INVOICE DEBUG ===');
-      console.log('Student Select value:', document.getElementById('invoiceStudentSelect').value);
-      console.log('Teacher Select value:', document.getElementById('invoiceTeacherSelect').value);
-      console.log('Month value:', document.getElementById('invoiceMonth').value);
-      console.log('Payment value:', document.getElementById('invoicePayment').value);
-      console.log('Discount value:', document.getElementById('invoiceDiscount').value);
-      console.log('Bank Account value:', document.getElementById('invoiceBankAccount').value);
-      console.log('Bank Name value:', document.getElementById('invoiceBankName').value);
-      console.log('Class input element:', document.getElementById('invoiceClass'));
-      console.log('Class value:', document.getElementById('invoiceClass').value);
-      console.log('Class value trimmed:', document.getElementById('invoiceClass').value.trim());
-      console.log('=== END DEBUG ===');
       
       const studentId = document.getElementById('invoiceStudentSelect').value;
       const teacherId = document.getElementById('invoiceTeacherSelect').value;
