@@ -1206,6 +1206,10 @@
     let wbRoomId = null;
     let excalidrawAPI = null;
     let isUpdatingFromSync = false;
+    let lastEmittedVersion = 0;
+    let syncTimeout = null;
+    let latestElements = null;
+    const getElementsVersion = (elements) => elements.reduce((acc, el) => acc + (el.version || 0), 0);
 
     // ── Room ID: shared room uses REAL peer IDs so teacher+student sync ──
     function getWbRoomId() {
@@ -1219,11 +1223,6 @@
 
     function initExcalidraw() {
       if (document.getElementById('excalidrawContainer').hasChildNodes()) return; // Already initialized
-
-      let lastEmittedVersion = 0;
-      let syncTimeout = null;
-      let latestElements = null;
-      const getElementsVersion = (elements) => elements.reduce((acc, el) => acc + (el.version || 0), 0);
 
       const e = React.createElement;
       const ExcalidrawComponent = (window.ExcalidrawLib && window.ExcalidrawLib.Excalidraw) 
