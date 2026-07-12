@@ -1766,6 +1766,7 @@
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
         bubble.innerText = msg.text;
+        bubble.innerHTML = bubble.innerHTML.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>');
 
         const meta = document.createElement('div');
         meta.className = 'message-time';

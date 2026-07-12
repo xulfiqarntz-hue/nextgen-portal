@@ -30,50 +30,53 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api', assignRoutes);
 
-// ── Shared Whiteboard via Socket.IO ──
-// Stores the latest canvas state per room so late-joiners get the current board
+// ── Shared Whiteboard via Socket.IO (multi-page) ──
 const whiteboardRooms = {};
 
+function getRoom(roomId) {
+  if (!whiteboardRooms[roomId]) whiteboardRooms[roomId] = { pages: [[]] };
+  return whiteboardRooms[roomId];
+}
+
 io.on('connection', (socket) => {
-  // Join a whiteboard room (roomId = sorted teacherId + studentId)
+  // Join room — always send full state (empty or not)
   socket.on('wb:join', (roomId) => {
     socket.join(roomId);
-    // Always send current board state (empty or not) to the newly joined user
-    const state = whiteboardRooms[roomId] || { strokes: [] };
-    socket.emit('wb:state', state);
+    socket.emit('wb:state', getRoom(roomId));
   });
 
-  // Complete element (freehand path, shape, text) – persisted for late-joiners
-  socket.on('wb:draw', ({ roomId, stroke }) => {
-    if (!whiteboardRooms[roomId]) whiteboardRooms[roomId] = { strokes: [] };
-    whiteboardRooms[roomId].strokes.push(stroke);
-    socket.to(roomId).emit('wb:draw', stroke);
+  // Committed stroke — persisted on the correct page
+  socket.on('wb:draw', ({ roomId, page, stroke }) => {
+    const room = getRoom(roomId);
+    while (room.pages.length <= page) room.pages.push([]);
+    room.pages[page].push(stroke);
+    socket.to(roomId).emit('wb:draw', { page, stroke });
   });
 
-  // Live freehand segment – forwarded only, NOT persisted (peer redraws on mouseup)
-  socket.on('wb:live', ({ roomId, seg }) => {
-    socket.to(roomId).emit('wb:live', seg);
+  // Live freehand — forwarded only, NOT persisted
+  socket.on('wb:live', ({ roomId, page, seg }) => {
+    socket.to(roomId).emit('wb:live', { page, seg });
   });
 
-  // Undo – remove last element from server state
-  socket.on('wb:undo', (roomId) => {
-    if (whiteboardRooms[roomId] && whiteboardRooms[roomId].strokes.length) {
-      whiteboardRooms[roomId].strokes.pop();
-    }
-    socket.to(roomId).emit('wb:undo');
+  // Undo last stroke on a page
+  socket.on('wb:undo', ({ roomId, page }) => {
+    const room = getRoom(roomId);
+    if (room.pages[page] && room.pages[page].length) room.pages[page].pop();
+    socket.to(roomId).emit('wb:undo', { page });
   });
 
-  // Redo – re-add element to server state
-  socket.on('wb:redo', ({ roomId, stroke }) => {
-    if (!whiteboardRooms[roomId]) whiteboardRooms[roomId] = { strokes: [] };
-    whiteboardRooms[roomId].strokes.push(stroke);
-    socket.to(roomId).emit('wb:redo', stroke);
+  // Clear a single page
+  socket.on('wb:clear', ({ roomId, page }) => {
+    const room = getRoom(roomId);
+    if (room.pages[page]) room.pages[page] = [];
+    socket.to(roomId).emit('wb:clear', { page });
   });
 
-  // Clear board
-  socket.on('wb:clear', (roomId) => {
-    whiteboardRooms[roomId] = { strokes: [] };
-    socket.to(roomId).emit('wb:clear');
+  // Add a new blank page
+  socket.on('wb:addPage', (roomId) => {
+    const room = getRoom(roomId);
+    room.pages.push([]);
+    socket.to(roomId).emit('wb:addPage', room.pages.length - 1);
   });
 });
 
