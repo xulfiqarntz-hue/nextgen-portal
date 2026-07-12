@@ -5,6 +5,10 @@ const invoiceSchema = new mongoose.Schema({
   teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   month: { type: String, required: true },
   payment: { type: Number, required: true },
+  subjects: [{
+    name: { type: String, required: true },
+    amount: { type: Number, required: true }
+  }],
   discount: { type: Number, default: 0 },
   bankAccountNo: { type: String },
   bankName: { type: String },

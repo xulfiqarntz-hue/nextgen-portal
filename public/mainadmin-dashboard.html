@@ -230,7 +230,14 @@
             <div class="form-group"><label>Student</label><select id="invoiceStudentSelect"></select></div>
             <div class="form-group"><label>Teacher</label><select id="invoiceTeacherSelect"></select></div>
             <div class="form-group"><label>Month</label><input id="invoiceMonth" placeholder="March 2026"></div>
-            <div class="form-group"><label>Payment</label><input id="invoicePayment" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Subject 1 Name</label><input id="invSub1Name" placeholder="e.g. Mathematics"></div>
+            <div class="form-group"><label>Subject 1 Amount</label><input id="invSub1Amt" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Subject 2 Name</label><input id="invSub2Name" placeholder="e.g. Physics"></div>
+            <div class="form-group"><label>Subject 2 Amount</label><input id="invSub2Amt" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Subject 3 Name</label><input id="invSub3Name" placeholder="e.g. Chemistry"></div>
+            <div class="form-group"><label>Subject 3 Amount</label><input id="invSub3Amt" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Subject 4 Name</label><input id="invSub4Name" placeholder="e.g. Biology"></div>
+            <div class="form-group"><label>Subject 4 Amount</label><input id="invSub4Amt" type="number" placeholder="0" min="0"></div>
             <div class="form-group"><label>Discount</label><input id="invoiceDiscount" type="number" placeholder="0" min="0"></div>
             <div class="form-group"><label>Bank Account No</label><input id="invoiceBankAccount" placeholder="00620095011441010"></div>
             <div class="form-group"><label>Bank Name</label><input id="invoiceBankName" placeholder="Al Habib Bank"></div>
@@ -464,28 +471,32 @@
       const studentId = document.getElementById('invoiceStudentSelect').value;
       const teacherId = document.getElementById('invoiceTeacherSelect').value;
       const month = document.getElementById('invoiceMonth').value.trim();
-      const payment = document.getElementById('invoicePayment').value.trim();
+      
+      const subjects = [];
+      for (let i = 1; i <= 4; i++) {
+        const sName = document.getElementById('invSub' + i + 'Name').value.trim();
+        const sAmt = document.getElementById('invSub' + i + 'Amt').value.trim();
+        if (sName && sAmt !== '') {
+          subjects.push({ name: sName, amount: Number(sAmt) });
+        }
+      }
+
       const discount = document.getElementById('invoiceDiscount').value.trim();
       const bankAccountNo = document.getElementById('invoiceBankAccount').value.trim();
       const bankName = document.getElementById('invoiceBankName').value.trim();
       const classElement = document.getElementById('invoiceClass');
       const className = classElement ? classElement.value.trim() : '';
-      console.log('Class element found:', !!classElement, 'className value:', className);
       const msgEl = document.getElementById('invoiceMsg');
 
       msgEl.innerText = '';
-      if (!studentId || !teacherId || !month || payment === '') {
-        msgEl.innerText = 'Student, teacher, month, and payment are required.';
+      if (!studentId || !teacherId || !month || subjects.length === 0) {
+        msgEl.innerText = 'Student, teacher, month, and at least one subject with amount are required.';
         return;
       }
       
-      // Log that we have all required fields
-      console.log('All validations passed, className before sending:', className);
-
       try {
-        const payload = { studentId, teacherId, month, payment, discount, bankAccountNo, bankName, className };
+        const payload = { studentId, teacherId, month, subjects, discount, bankAccountNo, bankName, className };
         console.log('Invoice payload:', payload);
-        console.log('className in payload:', className, 'type:', typeof className);
         const res = await fetch('/api/invoices/create', {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify(payload)
@@ -522,11 +533,15 @@
       document.getElementById('invoiceStudentSelect').value = '';
       document.getElementById('invoiceTeacherSelect').value = '';
       document.getElementById('invoiceMonth').value = '';
-      document.getElementById('invoicePayment').value = '';
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('invSub' + i + 'Name').value = '';
+        document.getElementById('invSub' + i + 'Amt').value = '';
+      }
       document.getElementById('invoiceDiscount').value = '';
       document.getElementById('invoiceBankAccount').value = '';
       document.getElementById('invoiceBankName').value = '';
-      document.getElementById('invoiceClass').value = '';
+      const ce = document.getElementById('invoiceClass');
+      if (ce) ce.value = '';
       document.getElementById('invoiceMsg').innerText = '';
     }
 

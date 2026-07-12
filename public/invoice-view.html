@@ -135,13 +135,7 @@
         </tr>
       </thead>
       <tbody id="itemsTableBody">
-        <tr>
-          <td>1</td>
-          <td id="subject">Mathematics</td>
-          <td id="noOfDays">30</td>
-          <td id="month">--</td>
-          <td class="text-right" id="amount">--</td>
-        </tr>
+        <!-- Dynamic Rows will be injected here -->
       </tbody>
     </table>
 
@@ -223,7 +217,32 @@
         document.getElementById('tutorName').innerText = inv.teacher?.name || '--';
         document.getElementById('className').innerText = inv.className || '--';
         document.getElementById('month').innerText = inv.month || '--';
-        document.getElementById('amount').innerText = inv.payment ? inv.payment.toFixed(2) : '--';
+
+        const tableBody = document.getElementById('itemsTableBody');
+        tableBody.innerHTML = '';
+        if (inv.subjects && inv.subjects.length > 0) {
+          inv.subjects.forEach((sub, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${index + 1}</td>
+              <td>${sub.name}</td>
+              <td>30</td>
+              <td>${inv.month || '--'}</td>
+              <td class="text-right">${sub.amount.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(tr);
+          });
+        } else {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>1</td>
+            <td>Tuition Fee</td>
+            <td>30</td>
+            <td>${inv.month || '--'}</td>
+            <td class="text-right">${inv.payment ? inv.payment.toFixed(2) : '--'}</td>
+          `;
+          tableBody.appendChild(tr);
+        }
         document.getElementById('bankAccount').innerText = inv.bankAccountNo || '--';
         document.getElementById('bankName').innerText = inv.bankName || '--';
 
