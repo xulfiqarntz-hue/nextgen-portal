@@ -1220,6 +1220,9 @@
     function initExcalidraw() {
       if (document.getElementById('excalidrawContainer').hasChildNodes()) return; // Already initialized
 
+      let lastEmittedVersion = 0;
+      const getElementsVersion = (elements) => elements.reduce((acc, el) => acc + (el.version || 0), 0);
+
       const e = React.createElement;
       const ExcalidrawComponent = (window.ExcalidrawLib && window.ExcalidrawLib.Excalidraw) 
                                || (window.Excalidraw && window.Excalidraw.Excalidraw)
@@ -1232,6 +1235,11 @@
             excalidrawAPI: (api) => { excalidrawAPI = api; },
             onChange: (elements, appState) => {
               if (isUpdatingFromSync) return;
+              
+              const currentVersion = getElementsVersion(elements);
+              if (currentVersion === lastEmittedVersion) return; // No actual element changes
+              lastEmittedVersion = currentVersion;
+
               if (wbSocket && wbSocket.connected && wbRoomId) {
                 wbSocket.emit('wb:update', { roomId: wbRoomId, elements });
               }
@@ -1262,15 +1270,17 @@
         wbSocket.on('wb:state', (state) => {
           if (excalidrawAPI && state.elements) {
             isUpdatingFromSync = true;
+            lastEmittedVersion = getElementsVersion(state.elements);
             excalidrawAPI.updateScene({ elements: state.elements });
-            isUpdatingFromSync = false;
+            setTimeout(() => { isUpdatingFromSync = false; }, 50);
           }
         });
         wbSocket.on('wb:update', (elements) => {
           if (excalidrawAPI) {
             isUpdatingFromSync = true;
+            lastEmittedVersion = getElementsVersion(elements);
             excalidrawAPI.updateScene({ elements });
-            isUpdatingFromSync = false;
+            setTimeout(() => { isUpdatingFromSync = false; }, 50);
           }
         });
       } else {
