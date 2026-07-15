@@ -68,6 +68,56 @@
     .chat-controls input { border-radius: 16px; border: 1px solid #334155; padding: 14px 16px; background: #111827; color: #fff; }
     .subject-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
     .subject-list li { background: rgba(255,255,255,.04); border: 1px solid rgba(148,163,184,.12); border-radius: 16px; padding: 14px 16px; }
+
+    /* ═══ ATTENDANCE ADMIN STYLES ═══ */
+    .att-a-subtab-bar { display: flex; gap: 0; border-bottom: 1px solid rgba(148,163,184,.15); margin-bottom: 20px; }
+    .att-a-subtab { padding: 10px 20px; border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
+    .att-a-subtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .att-a-subtab:hover:not(.active) { color: var(--text); }
+    .att-a-subpanel { display: none; }
+    .att-a-subpanel.active { display: block; }
+    .att-a-filter-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 18px; }
+    .att-a-filter-bar .form-group { flex: 1; min-width: 140px; }
+    .att-a-actions { display: flex; gap: 10px; align-items: center; margin-top: 4px; flex-shrink: 0; }
+    .att-a-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    .att-a-table thead tr { background: rgba(255,255,255,.06); }
+    .att-a-table th { padding: 10px 12px; color: var(--muted); font-size: .73rem; text-transform: uppercase; letter-spacing: .07em; text-align: left; border-bottom: 1px solid var(--border); }
+    .att-a-table td { padding: 10px 12px; border-bottom: 1px solid rgba(148,163,184,.07); vertical-align: middle; color: var(--text); }
+    .att-a-table tbody tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+    .att-a-table tbody tr:hover td { background: rgba(56,189,248,.06); }
+    .att-a-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+    .att-a-pill-present { background: rgba(34,197,94,.15); color: #4ade80; }
+    .att-a-pill-absent  { background: rgba(239,68,68,.15);  color: #f87171; }
+    .att-a-pill-late    { background: rgba(245,158,11,.15); color: #fbbf24; }
+    .att-a-pill-done    { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .att-a-pill-pending { background: rgba(245,158,11,.15); color: #fbbf24; }
+    .att-a-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .att-a-stat { background: rgba(15,23,42,.9); border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px; }
+    .att-a-stat-label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+    .att-a-stat-val { font-size: 2rem; font-weight: 800; color: var(--text); }
+    .att-a-stat-val.green { color: #4ade80; }
+    .att-a-stat-val.amber { color: #fbbf24; }
+    .att-a-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .att-a-bar-label { width: 80px; font-size: .82rem; color: var(--muted); flex-shrink: 0; }
+    .att-a-bar-track { flex: 1; background: rgba(255,255,255,.06); border-radius: 999px; height: 14px; overflow: hidden; }
+    .att-a-bar-fill  { height: 100%; border-radius: 999px; transition: width .5s ease; }
+    .att-a-bar-pct   { font-size: .82rem; font-weight: 700; width: 40px; text-align: right; flex-shrink: 0; }
+    .att-a-skel { border-radius: 8px; background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.1) 50%, rgba(255,255,255,.06) 75%); background-size: 200% 100%; animation: attAShimmer 1.4s infinite; }
+    @keyframes attAShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .att-a-skel-row { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
+    .att-a-skel-circle { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+    .att-a-skel-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .att-a-skel-line { height: 10px; border-radius: 6px; }
+    .att-a-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 48px 24px; color: var(--muted); text-align: center; }
+    .att-a-empty-icon { font-size: 2.5rem; opacity: 0.45; }
+    .att-a-empty h4 { margin: 0; font-size: .95rem; color: var(--text); }
+    .att-a-empty p  { margin: 0; font-size: .84rem; }
+    .att-a-date-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(56,189,248,.12); color: var(--accent); padding: 6px 12px; border-radius: 10px; font-size: .82rem; font-weight: 600; }
+    @media print {
+      .sidebar, .att-a-filter-bar, .att-a-subtab-bar, .att-a-actions, .nav, .logout-btn { display: none !important; }
+      body { background: #fff; color: #000; }
+      .att-a-table th, .att-a-table td { color: #000; border-color: #ccc; }
+    }
   </style>
 </head>
 <body>
@@ -92,6 +142,7 @@
         <!-- subadmins cannot add other subadmins -->
         <button data-tab="subjects" onclick="selectTab('subjects')">Subjects List</button>
         <button data-tab="chat" onclick="selectTab('chat')">Chat <span class="badge">New</span></button>
+        <button data-tab="attendance" onclick="selectTab('attendance')">Attendance 📋</button>
         <!-- hide expenses from subadmins -->
       </div>
 
@@ -209,6 +260,85 @@
 
       
 
+      <!-- ─── ATTENDANCE SECTION ─── -->
+      <section id="attendance" class="section">
+        <header>
+          <h3>Attendance Management</h3>
+          <div class="att-a-date-badge" id="attAdminDateBadge">📅 Today</div>
+        </header>
+        <div class="att-a-subtab-bar">
+          <button class="att-a-subtab active" id="attASubDaily" onclick="switchAttAdminTab('daily')">Daily Oversight</button>
+          <button class="att-a-subtab" id="attASubLogs" onclick="switchAttAdminTab('logs')">Attendance Logs</button>
+          <button class="att-a-subtab" id="attASubReport" onclick="switchAttAdminTab('report')">Student Report</button>
+        </div>
+        <!-- Daily -->
+        <div class="att-a-subpanel active" id="attASubPanelDaily">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
+            <input type="date" id="attADailyDate" style="padding:10px 14px;border-radius:12px;border:1px solid #334155;background:#111827;color:#fff;font-family:inherit;font-size:.86rem;" onchange="loadDailyStatus()">
+            <button class="button-primary" style="height:42px;" onclick="loadDailyStatus()">&#128260; Refresh</button>
+          </div>
+          <div class="att-a-stat-grid">
+            <div class="att-a-stat"><div class="att-a-stat-label">Total Teachers</div><div class="att-a-stat-val" id="attAStatTotal">—</div></div>
+            <div class="att-a-stat"><div class="att-a-stat-label">Submitted</div><div class="att-a-stat-val green" id="attAStatDone">—</div></div>
+            <div class="att-a-stat"><div class="att-a-stat-label">Pending</div><div class="att-a-stat-val amber" id="attAStatPending">—</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div id="attADailyTableWrap">
+              <div style="padding:16px;" id="attADailySkel">
+                <div class="att-a-skel-row"><div class="att-a-skel att-a-skel-circle"></div><div class="att-a-skel-lines"><div class="att-a-skel att-a-skel-line" style="width:45%;"></div><div class="att-a-skel att-a-skel-line" style="width:30%;"></div></div></div>
+                <div class="att-a-skel-row"><div class="att-a-skel att-a-skel-circle"></div><div class="att-a-skel-lines"><div class="att-a-skel att-a-skel-line" style="width:60%;"></div><div class="att-a-skel att-a-skel-line" style="width:25%;"></div></div></div>
+              </div>
+              <table class="att-a-table" id="attADailyTable" style="display:none;">
+                <thead><tr><th>Teacher</th><th>Email</th><th>Students</th><th>Marked</th><th>Status</th></tr></thead>
+                <tbody id="attADailyBody"></tbody>
+              </table>
+              <div class="att-a-empty" id="attADailyEmpty" style="display:none;">
+                <div class="att-a-empty-icon">👨‍🏫</div><h4>No teachers found</h4><p>Add teachers first.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Logs -->
+        <div class="att-a-subpanel" id="attASubPanelLogs">
+          <div class="card" style="margin-bottom:18px;">
+            <div class="att-a-filter-bar">
+              <div class="form-group"><label>Date From</label><input type="date" id="attALogFrom"></div>
+              <div class="form-group"><label>Date To</label><input type="date" id="attALogTo"></div>
+              <div class="form-group"><label>Teacher</label><select id="attALogTeacher"><option value="">All Teachers</option></select></div>
+              <div class="form-group"><label>Student Name</label><input type="text" id="attALogStudent" placeholder="Search name..."></div>
+              <div class="att-a-actions">
+                <button class="button-primary" onclick="loadAdminLogs()">&#128269; Search</button>
+                <button class="button-secondary" onclick="clearAdminLogs()">Clear</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+              <button class="button-primary" onclick="exportAttCSV()" style="background:#0ea5e9;">&#8659; Export CSV</button>
+              <button class="button-secondary" onclick="exportAttPDF()">&#128444; Export PDF</button>
+            </div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div id="attALogsWrap">
+              <div class="att-a-empty" id="attALogsEmpty"><div class="att-a-empty-icon">📂</div><h4>No records loaded</h4><p>Apply filters and click Search.</p></div>
+              <div style="overflow-x:auto;" id="attALogsTableWrap">
+                <table class="att-a-table" id="attALogsTable"><thead><tr><th>Date</th><th>Teacher</th><th>Student</th><th>Topic</th><th>Status</th><th>Submitted At</th></tr></thead><tbody id="attALogsBody"></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Report -->
+        <div class="att-a-subpanel" id="attASubPanelReport">
+          <div class="card" style="margin-bottom:18px;">
+            <div class="form-grid">
+              <div class="form-group"><label>Select Student</label><select id="attAReportStudent"><option value="">-- Select a Student --</option></select></div>
+              <div class="form-group" style="justify-content:flex-end;display:flex;align-items:flex-end;"><button class="button-primary" onclick="loadStudentReport()">&#128202; Generate Report</button></div>
+            </div>
+          </div>
+          <div class="card" id="attAReportCard">
+            <div class="att-a-empty"><div class="att-a-empty-icon">📊</div><h4>Select a student</h4><p>Choose above and click Generate Report.</p></div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -218,7 +348,7 @@
     const localRole = localStorage.getItem('role');
     let role = localRole; // will be overridden by server-verified role
     let serverRole = null;
-    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subjects','chat'];
+    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subjects','chat','attendance'];
 
     if (!token) {
       window.location.href = '/login.html';
@@ -267,6 +397,7 @@
     function selectTab(tab) {
       tabs.forEach(name => document.getElementById(name).classList.toggle('active', name === tab));
       document.querySelectorAll('.nav button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      if (tab === 'attendance') { loadDailyStatus(); populateAttTeacherFilter(); populateAttStudentSelect(); }
     }
 
     function renderStudentTable() {
@@ -430,6 +561,134 @@
 
     // Initialize: get server role then load data
     (async () => { await fetchMe(); await loadAllData(); })();
+
+    /* ═══ ATTENDANCE ADMIN MODULE (subadmin) ═══ */
+    const attASubtabs = ['daily', 'logs', 'report'];
+
+    function switchAttAdminTab(tab) {
+      attASubtabs.forEach(t => {
+        document.getElementById('attASubPanel' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
+        document.getElementById('attASub' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
+      });
+      if (tab === 'daily') loadDailyStatus();
+      if (tab === 'logs') populateAttTeacherFilter();
+      if (tab === 'report') populateAttStudentSelect();
+    }
+
+    async function loadDailyStatus() {
+      const dateEl = document.getElementById('attADailyDate');
+      if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+      const date = dateEl.value;
+      document.getElementById('attAdminDateBadge').textContent = '\uD83D\uDCC5 ' + date;
+      document.getElementById('attADailySkel').style.display = 'block';
+      document.getElementById('attADailyTable').style.display = 'none';
+      document.getElementById('attADailyEmpty').style.display = 'none';
+      try {
+        const res = await fetch('/api/attendance/daily-status?date=' + date, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        const list = data.status || [];
+        const done = list.filter(t => t.submitted).length;
+        document.getElementById('attAStatTotal').textContent = list.length;
+        document.getElementById('attAStatDone').textContent = done;
+        document.getElementById('attAStatPending').textContent = list.length - done;
+        document.getElementById('attADailySkel').style.display = 'none';
+        if (!list.length) { document.getElementById('attADailyEmpty').style.display = 'flex'; return; }
+        const tbody = document.getElementById('attADailyBody');
+        tbody.innerHTML = '';
+        list.forEach(t => {
+          const pill = t.submitted
+            ? '<span class="att-a-pill att-a-pill-done">\u2705 Submitted</span>'
+            : '<span class="att-a-pill att-a-pill-pending">\u23F3 Pending</span>';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><strong>${t.teacherName}</strong></td><td style="color:var(--muted);font-size:.82rem;">${t.teacherEmail}</td><td style="text-align:center;">${t.totalStudents}</td><td style="text-align:center;">${t.studentsMarked}</td><td>${pill}</td>`;
+          tbody.appendChild(tr);
+        });
+        document.getElementById('attADailyTable').style.display = 'table';
+      } catch (err) {
+        document.getElementById('attADailySkel').style.display = 'none';
+        document.getElementById('attADailyEmpty').style.display = 'flex';
+      }
+    }
+
+    async function populateAttTeacherFilter() {
+      const sel = document.getElementById('attALogTeacher');
+      if (sel.options.length > 1) return;
+      (window.tutors || []).forEach(t => {
+        const opt = document.createElement('option'); opt.value = t._id; opt.textContent = t.name; sel.appendChild(opt);
+      });
+    }
+
+    async function loadAdminLogs() {
+      const dateFrom = document.getElementById('attALogFrom').value;
+      const dateTo = document.getElementById('attALogTo').value;
+      const teacherId = document.getElementById('attALogTeacher').value;
+      const studentName = document.getElementById('attALogStudent').value.trim();
+      document.getElementById('attALogsWrap').innerHTML = `<div style="padding:16px;">${Array(5).fill('<div class="att-a-skel-row"><div class="att-a-skel att-a-skel-circle"></div><div class="att-a-skel-lines"><div class="att-a-skel att-a-skel-line" style="width:55%;"></div><div class="att-a-skel att-a-skel-line" style="width:30%;"></div></div></div>').join('')}</div>`;
+      const params = new URLSearchParams();
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
+      if (teacherId) params.set('teacherId', teacherId);
+      if (studentName) params.set('studentName', studentName);
+      try {
+        const res = await fetch('/api/attendance/admin-logs?' + params.toString(), { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        const logs = data.logs || [];
+        const statusPill = s => { const map={present:'\uD83D\uDFE2 Present',absent:'\uD83D\uDD34 Absent',late:'\uD83D\uDFE1 Late'},cls={present:'att-a-pill-present',absent:'att-a-pill-absent',late:'att-a-pill-late'}; return `<span class="att-a-pill ${cls[s]||''}">${map[s]||s}</span>`; };
+        document.getElementById('attALogsWrap').innerHTML = `
+          <div class="att-a-empty" id="attALogsEmpty" style="display:${!logs.length?'flex':'none'}"><div class="att-a-empty-icon">📭</div><h4>No records found</h4><p>Try adjusting your filters.</p></div>
+          <div style="overflow-x:auto;" id="attALogsTableWrap"><table class="att-a-table" id="attALogsTable"><thead><tr><th>Date</th><th>Teacher</th><th>Student</th><th>Topic</th><th>Status</th><th>Submitted At</th></tr></thead><tbody id="attALogsBody"></tbody></table></div>`;
+        if (logs.length) {
+          const tbody = document.getElementById('attALogsBody');
+          logs.forEach(l => {
+            const submittedAt = l.submittedAt ? new Date(l.submittedAt).toLocaleString() : '\u2014';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${l.date}</td><td><strong>${l.teacher?.name||'\u2014'}</strong></td><td>${l.student?.name||'\u2014'}<div style="color:var(--muted);font-size:.75rem;">${l.student?.email||''}</div></td><td style="color:var(--muted);">${l.topic||'\u2014'}</td><td>${statusPill(l.status)}</td><td style="color:var(--muted);font-size:.78rem;">${submittedAt}</td>`;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch (err) {
+        document.getElementById('attALogsWrap').innerHTML = `<div class="att-a-empty"><div class="att-a-empty-icon">⚠️</div><h4>Error</h4><p>${err.message}</p></div>`;
+      }
+    }
+
+    function clearAdminLogs() {
+      ['attALogFrom','attALogTo','attALogStudent'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+      document.getElementById('attALogTeacher').value = '';
+      document.getElementById('attALogsWrap').innerHTML = `<div class="att-a-empty" id="attALogsEmpty"><div class="att-a-empty-icon">📂</div><h4>No records loaded</h4><p>Apply filters and click Search.</p></div>`;
+    }
+
+    function exportAttCSV() {
+      const dateFrom=document.getElementById('attALogFrom').value,dateTo=document.getElementById('attALogTo').value,teacherId=document.getElementById('attALogTeacher').value,studentName=document.getElementById('attALogStudent').value.trim();
+      const params=new URLSearchParams();
+      if(dateFrom)params.set('dateFrom',dateFrom); if(dateTo)params.set('dateTo',dateTo); if(teacherId)params.set('teacherId',teacherId); if(studentName)params.set('studentName',studentName);
+      fetch('/api/attendance/export-csv?'+params.toString(),{headers:{'Authorization':'Bearer '+token}}).then(r=>r.blob()).then(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='attendance_export.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);}).catch(err=>alert('CSV export failed: '+err.message));
+    }
+
+    function exportAttPDF() { window.print(); }
+
+    function populateAttStudentSelect() {
+      const sel=document.getElementById('attAReportStudent');
+      if(sel.options.length>1) return;
+      (window.students||[]).forEach(s=>{const opt=document.createElement('option');opt.value=s._id;opt.textContent=s.name;sel.appendChild(opt);});
+    }
+
+    async function loadStudentReport() {
+      const studentId=document.getElementById('attAReportStudent').value;
+      const card=document.getElementById('attAReportCard');
+      if(!studentId){card.innerHTML='<div class="att-a-empty"><div class="att-a-empty-icon">💡</div><h4>Select a student first</h4></div>';return;}
+      card.innerHTML=`<div style="padding:16px;">${Array(4).fill('<div class="att-a-skel-row"><div class="att-a-skel att-a-skel-circle"></div><div class="att-a-skel-lines"><div class="att-a-skel att-a-skel-line" style="width:60%;"></div></div></div>').join('')}</div>`;
+      try {
+        const res=await fetch('/api/attendance/student-report/'+studentId,{headers:{'Authorization':'Bearer '+token}});
+        const data=await res.json();
+        if(!res.ok) throw new Error(data.error||'Failed');
+        const {student,summary,records}=data;
+        const {total,present,absent,late,presentPct,absentPct,latePct}=summary;
+        const rows=records.slice(0,10).map(r=>{const map={present:'\uD83D\uDFE2 Present',absent:'\uD83D\uDD34 Absent',late:'\uD83D\uDFE1 Late'},cls={present:'att-a-pill-present',absent:'att-a-pill-absent',late:'att-a-pill-late'};return `<tr><td>${r.date}</td><td style="color:var(--muted);">${r.topic||'\u2014'}</td><td><span class="att-a-pill ${cls[r.status]}">${map[r.status]}</span></td></tr>`;}).join('');
+        card.innerHTML=`<h3 style="margin:0 0 4px;">${student.name}</h3><p style="margin:0 0 20px;color:var(--muted);font-size:.85rem;">${student.email} &mdash; ${total} session(s)</p><div style="margin-bottom:20px;"><div class="att-a-bar-row"><div class="att-a-bar-label">🟢 Present</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${presentPct}%;background:#22c55e;"></div></div><div class="att-a-bar-pct" style="color:#4ade80;">${presentPct}%</div></div><div class="att-a-bar-row"><div class="att-a-bar-label">🔴 Absent</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${absentPct}%;background:#ef4444;"></div></div><div class="att-a-bar-pct" style="color:#f87171;">${absentPct}%</div></div><div class="att-a-bar-row"><div class="att-a-bar-label">🟡 Late</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${latePct}%;background:#f59e0b;"></div></div><div class="att-a-bar-pct" style="color:#fbbf24;">${latePct}%</div></div></div>${records.length?`<div style="overflow-x:auto;"><table class="att-a-table"><thead><tr><th>Date</th><th>Topic</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="note">No sessions yet.</p>'}`;
+      } catch(err) {
+        card.innerHTML=`<div class="att-a-empty"><div class="att-a-empty-icon">⚠️</div><h4>Failed to load</h4><p>${err.message}</p></div>`;
+      }
+    }
   </script>
 </body>
 </html>

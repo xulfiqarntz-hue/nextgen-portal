@@ -857,6 +857,337 @@
       }
       .wb-slider { width: 60px; }
     }
+
+    /* ═══════════════════════════════════════════
+       ATTENDANCE PANEL STYLES
+    ═══════════════════════════════════════════ */
+    .att-nav-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 0;
+      background: rgba(255,255,255,0.06);
+      color: #111827;
+      cursor: pointer;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: background 0.18s ease;
+      border-top: 1px solid rgba(0,0,0,0.07);
+    }
+    .att-nav-btn:hover { background: rgba(30,58,138,0.1); color: #1E3A8A; }
+    .att-nav-btn .att-nav-icon { font-size: 1.1rem; }
+
+    /* Attendance overlay (same base as .tool-overlay) */
+    #attendanceOverlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      flex-direction: column;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+    #attendanceOverlay.open { display: flex; }
+
+    .att-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: #1E3A8A;
+      color: #fff;
+      flex-shrink: 0;
+      gap: 14px;
+    }
+    .att-header h3 { margin: 0; font-size: 1rem; font-weight: 700; }
+    .att-header-actions { display: flex; gap: 8px; }
+
+    .att-tab-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid #e2e8f0;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .att-tab {
+      padding: 12px 22px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .att-tab.active { color: #1E3A8A; border-bottom-color: #1E3A8A; }
+    .att-tab:hover:not(.active) { color: #1E3A8A; }
+
+    .att-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .att-panel { display: none; }
+    .att-panel.active { display: flex; flex-direction: column; gap: 18px; }
+
+    /* Session Setup Form */
+    .att-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 600px) {
+      .att-form-row { grid-template-columns: 1fr; }
+    }
+    .att-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .att-form-group label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .att-form-group input, .att-form-group select {
+      padding: 11px 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      background: #fff;
+      color: #0f172a;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: border-color 0.15s;
+    }
+    .att-form-group input:focus, .att-form-group select:focus {
+      outline: none;
+      border-color: #1E3A8A;
+    }
+
+    .att-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 22px;
+      height: 44px;
+      border: none;
+      border-radius: 14px;
+      background: #1E3A8A;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .att-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(30,58,138,0.28); }
+    .att-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .att-btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 18px;
+      height: 44px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 14px;
+      background: #fff;
+      color: #475569;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .att-btn-secondary:hover { background: #f1f5f9; border-color: #94a3b8; }
+
+    /* Status Toggle Buttons */
+    .att-status-toggle {
+      display: flex;
+      gap: 6px;
+    }
+    .att-status-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f8fafc;
+      color: #64748b;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .att-status-btn.selected-present { background: #dcfce7; border-color: #22c55e; color: #15803d; }
+    .att-status-btn.selected-absent  { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+    .att-status-btn.selected-late    { background: #fef9c3; border-color: #f59e0b; color: #b45309; }
+
+    /* Desktop list table */
+    .att-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .att-table thead tr {
+      background: #f1f5f9;
+    }
+    .att-table th {
+      padding: 10px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .att-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.9rem;
+      color: #1e293b;
+      vertical-align: middle;
+    }
+    .att-table tbody tr:nth-child(even) td { background: #f8fafc; }
+    .att-table tbody tr:hover td { background: #eff6ff; }
+
+    /* Mobile card grid */
+    .att-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .att-card {
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      transition: box-shadow 0.15s;
+    }
+    .att-card:hover { box-shadow: 0 4px 14px rgba(30,58,138,0.1); }
+    .att-card-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .att-card-email {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: -8px;
+    }
+
+    /* Status pills (read-only display) */
+    .att-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .att-pill-present { background: #dcfce7; color: #15803d; }
+    .att-pill-absent  { background: #fee2e2; color: #b91c1c; }
+    .att-pill-late    { background: #fef9c3; color: #b45309; }
+
+    /* Skeleton loading */
+    .att-skeleton {
+      border-radius: 8px;
+      background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+      background-size: 200% 100%;
+      animation: attShimmer 1.4s infinite;
+    }
+    @keyframes attShimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .att-skel-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .att-skel-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+    .att-skel-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .att-skel-line-a { height: 12px; width: 55%; border-radius: 6px; }
+    .att-skel-line-b { height: 10px; width: 35%; border-radius: 6px; }
+    .att-skel-btns { display: flex; gap: 6px; }
+    .att-skel-btn { width: 70px; height: 32px; border-radius: 8px; }
+
+    /* Empty state */
+    .att-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 48px 24px;
+      color: #94a3b8;
+      text-align: center;
+    }
+    .att-empty-icon { font-size: 3rem; opacity: 0.5; }
+    .att-empty h4 { margin: 0; font-size: 1rem; color: #64748b; }
+    .att-empty p { margin: 0; font-size: 0.88rem; }
+
+    /* Toast notification */
+    #attToast {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 9999;
+      min-width: 280px;
+      max-width: 380px;
+      padding: 14px 20px;
+      border-radius: 16px;
+      color: #fff;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      transform: translateX(130%);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none;
+    }
+    #attToast.show { transform: translateX(0); }
+    #attToast.success { background: linear-gradient(135deg, #1E3A8A, #1d4ed8); }
+    #attToast.error   { background: linear-gradient(135deg, #b91c1c, #ef4444); }
+
+    /* History log table */
+    .att-section-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    @media (max-width: 768px) {
+      .att-desktop-only { display: none !important; }
+      .att-mobile-only  { display: block !important; }
+      .att-body { padding: 16px; }
+    }
+    @media (min-width: 769px) {
+      .att-mobile-only  { display: none !important; }
+      .att-desktop-only { display: block !important; }
+    }
   </style>
 </head>
 
@@ -871,6 +1202,12 @@
         <input id="searchInput" type="search" placeholder="Search students..." oninput="renderChatList()">
       </div>
       <div id="chatList" class="chat-list">Loading chats...</div>
+
+      <!-- Attendance Nav Button -->
+      <button class="att-nav-btn" onclick="openAttendance()" id="attNavBtn">
+        <span class="att-nav-icon">📋</span>
+        <span>Take Attendance</span>
+      </button>
     </aside>
 
     <section class="main-panel">
@@ -940,6 +1277,146 @@
           <div id="excalidrawContainer" style="width: 100%; flex: 1; min-height: 500px;"></div>
         </div>
       </div>
+
+      <!-- ── Attendance Overlay ── -->
+      <div id="attendanceOverlay">
+        <div class="att-header">
+          <h3>📋 Attendance</h3>
+          <div class="att-header-actions">
+            <button class="btn-end" style="background:rgba(255,255,255,0.15);" onclick="closeAttendance()">✕ Close</button>
+          </div>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="att-tab-bar">
+          <button class="att-tab active" id="attTabMark" onclick="switchAttTab('mark')">📝 Mark Attendance</button>
+          <button class="att-tab" id="attTabHistory" onclick="switchAttTab('history')">📂 My History</button>
+        </div>
+
+        <div class="att-body">
+
+          <!-- ─── PANEL: MARK ATTENDANCE ─── -->
+          <div class="att-panel active" id="attPanelMark">
+
+            <!-- Session Setup -->
+            <div style="background:#fff;border-radius:18px;padding:20px;border:1.5px solid #e2e8f0;">
+              <div class="att-section-title" style="margin-bottom:14px;">Session Details</div>
+              <div class="att-form-row">
+                <div class="att-form-group">
+                  <label for="attDate">Session Date</label>
+                  <input type="date" id="attDate">
+                </div>
+                <div class="att-form-group">
+                  <label for="attTopic">Topic Covered</label>
+                  <input type="text" id="attTopic" placeholder="e.g. Chapter 5 — Fractions">
+                </div>
+              </div>
+              <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="att-btn-primary" onclick="loadAttendanceStudents()" id="attLoadBtn">
+                  <span>⚡</span> Load Students
+                </button>
+              </div>
+            </div>
+
+            <!-- Student list (skeleton → desktop → mobile) -->
+            <div id="attStudentSection" style="display:none;">
+
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                <div class="att-section-title" id="attStudentCountLabel">Students</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <button class="att-btn-secondary" onclick="attMarkAll('present')" title="Mark all present">✅ All Present</button>
+                  <button class="att-btn-secondary" onclick="attMarkAll('absent')" title="Mark all absent">❌ All Absent</button>
+                  <button class="att-btn-secondary" id="attAddStudentBtn" onclick="toggleAddStudentPicker()" title="Add a student to this session">➕ Add Student</button>
+                </div>
+              </div>
+
+              <!-- Add-student picker (hidden by default) -->
+              <div id="attAddStudentPicker" style="display:none;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:14px;padding:14px 16px;margin-top:10px;">
+                <div style="font-size:.85rem;font-weight:700;color:#0369a1;margin-bottom:8px;">Add a student to this session</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <select id="attExtraStudentSelect" style="flex:1;min-width:180px;padding:10px 12px;border-radius:10px;border:1px solid #bae6fd;background:#fff;font-family:inherit;font-size:.88rem;">
+                    <option value="">— Select student —</option>
+                  </select>
+                  <button class="att-btn-primary" onclick="addExtraStudent()" style="padding:10px 16px;">Add</button>
+                  <button class="att-btn-secondary" onclick="toggleAddStudentPicker()" style="padding:10px 14px;">✕</button>
+                </div>
+              </div>
+
+              <!-- Desktop Table -->
+              <div class="att-desktop-only" style="background:#fff;border-radius:18px;border:1.5px solid #e2e8f0;overflow:hidden;">
+                <table class="att-table">
+                  <thead>
+                    <tr>
+                      <th style="width:32px;"></th>
+                      <th>#</th>
+                      <th>Student</th>
+                      <th>Email</th>
+                      <th style="text-align:center;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="attDesktopBody"></tbody>
+                </table>
+              </div>
+
+              <!-- Mobile Cards -->
+              <div class="att-mobile-only att-cards-grid" id="attMobileCards"></div>
+
+              <!-- Submit -->
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+                <button class="att-btn-primary" onclick="submitAttendance()" id="attSubmitBtn">
+                  <span>✅</span> Submit Attendance
+                </button>
+                <button class="att-btn-secondary" onclick="resetAttendanceForm()">↺ Reset</button>
+              </div>
+            </div>
+
+            <!-- Skeleton (shown while loading) -->
+            <div id="attSkeleton" style="display:none;background:#fff;border-radius:18px;padding:20px;border:1.5px solid #e2e8f0;">
+              <div class="att-section-title" style="margin-bottom:14px;">Loading Students…</div>
+              <div id="attSkeletonRows"></div>
+            </div>
+
+            <!-- Empty state (no students assigned) -->
+            <div id="attEmpty" style="display:none;">
+              <div class="att-empty">
+                <div class="att-empty-icon">🎓</div>
+                <h4>No students assigned</h4>
+                <p>Ask your admin to assign students to you before taking attendance.</p>
+              </div>
+            </div>
+
+          </div><!-- /attPanelMark -->
+
+          <!-- ─── PANEL: HISTORY ─── -->
+          <div class="att-panel" id="attPanelHistory">
+
+            <div style="background:#fff;border-radius:18px;padding:20px;border:1.5px solid #e2e8f0;">
+              <div class="att-section-title" style="margin-bottom:14px;">Filter by Date</div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                <div class="att-form-group" style="flex:1;min-width:140px;">
+                  <label for="attHistDate">Session Date</label>
+                  <input type="date" id="attHistDate">
+                </div>
+                <button class="att-btn-primary" onclick="loadAttHistory()">
+                  <span>🔍</span> Search
+                </button>
+                <button class="att-btn-secondary" onclick="clearAttHistory()">Clear</button>
+              </div>
+            </div>
+
+            <div id="attHistResults" style="background:#fff;border-radius:18px;border:1.5px solid #e2e8f0;overflow:hidden;">
+              <div class="att-empty">
+                <div class="att-empty-icon">📂</div>
+                <h4>No records loaded</h4>
+                <p>Select a date above and click Search.</p>
+              </div>
+            </div>
+
+          </div><!-- /attPanelHistory -->
+
+        </div><!-- /att-body -->
+      </div><!-- /attendanceOverlay -->
+
     </section>
   </div>
 
@@ -1410,6 +1887,410 @@
     function logout() {
       localStorage.clear();
       window.location.href = '/login.html';
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       ATTENDANCE MODULE
+    ═══════════════════════════════════════════════════════ */
+
+    // State
+    let attStudents = []; // [{_id, name, email, status, included}]
+    let attStudentsLoaded = false;
+    let attAllStudentsPool = []; // All students in the system (for extra-picker)
+
+    // ── Open / Close ──
+    function openAttendance() {
+      document.getElementById('attendanceOverlay').classList.add('open');
+      // Default date to today
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const dateEl = document.getElementById('attDate');
+      if (!dateEl.value) dateEl.value = todayISO;
+    }
+
+    function closeAttendance() {
+      document.getElementById('attendanceOverlay').classList.remove('open');
+    }
+
+    // ── Tab switching ──
+    function switchAttTab(tab) {
+      document.getElementById('attPanelMark').classList.toggle('active', tab === 'mark');
+      document.getElementById('attPanelHistory').classList.toggle('active', tab === 'history');
+      document.getElementById('attTabMark').classList.toggle('active', tab === 'mark');
+      document.getElementById('attTabHistory').classList.toggle('active', tab === 'history');
+    }
+
+    // ── Load students with skeleton screen ──
+    async function loadAttendanceStudents() {
+      const btn = document.getElementById('attLoadBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Loading…';
+
+      // Show skeleton
+      document.getElementById('attStudentSection').style.display = 'none';
+      document.getElementById('attEmpty').style.display = 'none';
+      document.getElementById('attSkeleton').style.display = 'block';
+      renderSkeletonRows(6);
+
+      try {
+        const res = await fetch('/api/my-students', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        const raw = data.students || [];
+
+        // Also pre-load ALL students for the extra-picker (best-effort, ignore errors)
+        try {
+          const allRes = await fetch('/api/all-users', { headers: { 'Authorization': 'Bearer ' + token } });
+          const allData = await allRes.json();
+          attAllStudentsPool = allData.students || [];
+        } catch (_) { attAllStudentsPool = []; }
+
+        document.getElementById('attSkeleton').style.display = 'none';
+
+        if (!raw.length) {
+          document.getElementById('attEmpty').style.display = 'block';
+          return;
+        }
+
+        // Initialise all assigned students: included=true, status=present
+        attStudents = raw.map(s => ({ ...s, status: 'present', included: true }));
+        attStudentsLoaded = true;
+        renderAttStudents();
+        populateExtraStudentPicker();
+        document.getElementById('attStudentSection').style.display = 'block';
+        updateAttCountLabel();
+
+      } catch (err) {
+        document.getElementById('attSkeleton').style.display = 'none';
+        showAttToast('Failed to load students: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>⚡</span> Reload Students';
+      }
+    }
+
+    // ── Update the count label ──
+    function updateAttCountLabel() {
+      const included = attStudents.filter(s => s.included).length;
+      const total = attStudents.length;
+      document.getElementById('attStudentCountLabel').textContent =
+        included === total
+          ? `Students (${total})`
+          : `Students (${included} of ${total} included)`;
+    }
+
+    // ── Toggle the add-student picker ──
+    function toggleAddStudentPicker() {
+      const picker = document.getElementById('attAddStudentPicker');
+      picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // ── Populate extra-student dropdown (exclude already-added students) ──
+    function populateExtraStudentPicker() {
+      const sel = document.getElementById('attExtraStudentSelect');
+      const existingIds = new Set(attStudents.map(s => s._id));
+      sel.innerHTML = '<option value="">— Select student —</option>';
+      attAllStudentsPool
+        .filter(s => !existingIds.has(s._id))
+        .forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s._id;
+          opt.textContent = s.name + ' (' + s.email + ')';
+          sel.appendChild(opt);
+        });
+    }
+
+    // ── Add an extra student to the session ──
+    function addExtraStudent() {
+      const sel = document.getElementById('attExtraStudentSelect');
+      const studentId = sel.value;
+      if (!studentId) return;
+      const found = attAllStudentsPool.find(s => s._id === studentId);
+      if (!found) return;
+      if (attStudents.find(s => s._id === studentId)) return; // already in list
+      attStudents.push({ ...found, status: 'present', included: true });
+      populateExtraStudentPicker();
+      renderAttStudents();
+      updateAttCountLabel();
+      sel.value = '';
+    }
+
+    // ── Toggle include/exclude for a student in this session ──
+    function toggleStudentIncluded(studentId) {
+      const s = attStudents.find(s => s._id === studentId);
+      if (!s) return;
+      s.included = !s.included;
+      // Refresh just the checkbox + row opacity without full re-render
+      ['d', 'm'].forEach(view => {
+        const row = document.getElementById(`att-row-${view}-${studentId}`);
+        if (row) row.style.opacity = s.included ? '1' : '0.4';
+        const cb = document.getElementById(`att-cb-${view}-${studentId}`);
+        if (cb) cb.checked = s.included;
+      });
+      updateAttCountLabel();
+      // Refresh the extra picker so excluded students CAN be re-added if needed
+      populateExtraStudentPicker();
+    }
+
+    function renderSkeletonRows(count) {
+      const container = document.getElementById('attSkeletonRows');
+      container.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        container.innerHTML += `
+          <div class="att-skel-row">
+            <div class="att-skeleton att-skel-avatar"></div>
+            <div class="att-skel-lines">
+              <div class="att-skeleton att-skel-line-a"></div>
+              <div class="att-skeleton att-skel-line-b"></div>
+            </div>
+            <div class="att-skel-btns">
+              <div class="att-skeleton att-skel-btn"></div>
+              <div class="att-skeleton att-skel-btn"></div>
+              <div class="att-skeleton att-skel-btn"></div>
+            </div>
+          </div>`;
+      }
+    }
+
+    // ── Render both desktop table and mobile cards ──
+    function renderAttStudents() {
+      const tbody = document.getElementById('attDesktopBody');
+      const cards = document.getElementById('attMobileCards');
+      tbody.innerHTML = '';
+      cards.innerHTML = '';
+
+      attStudents.forEach((s, idx) => {
+        const initials = s.name.trim().split(/\s+/).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+        const opacity = s.included ? '1' : '0.4';
+
+        // Desktop row
+        const tr = document.createElement('tr');
+        tr.id = `att-row-d-${s._id}`;
+        tr.style.opacity = opacity;
+        tr.innerHTML = `
+          <td style="text-align:center;">
+            <input type="checkbox" id="att-cb-d-${s._id}" ${s.included ? 'checked' : ''}
+              style="width:16px;height:16px;cursor:pointer;accent-color:#0ea5e9;"
+              onchange="toggleStudentIncluded('${s._id}')">
+          </td>
+          <td style="color:#94a3b8;font-size:0.82rem;">${idx + 1}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:50%;background:#1E3A8A;color:#fff;display:grid;place-items:center;font-weight:700;font-size:0.8rem;flex-shrink:0;">${initials}</div>
+              <span style="font-weight:600;">${s.name}</span>
+            </div>
+          </td>
+          <td style="color:#64748b;font-size:0.85rem;">${s.email}</td>
+          <td>
+            <div class="att-status-toggle" id="att-toggle-d-${s._id}">
+              <button class="att-status-btn ${s.status === 'present' ? 'selected-present' : ''}" onclick="setStudentStatus('${s._id}', 'present')">✅ Present</button>
+              <button class="att-status-btn ${s.status === 'absent' ? 'selected-absent' : ''}" onclick="setStudentStatus('${s._id}', 'absent')">❌ Absent</button>
+              <button class="att-status-btn ${s.status === 'late' ? 'selected-late' : ''}" onclick="setStudentStatus('${s._id}', 'late')">🕐 Late</button>
+            </div>
+          </td>`;
+        tbody.appendChild(tr);
+
+        // Mobile card
+        const card = document.createElement('div');
+        card.className = 'att-card';
+        card.id = `att-row-m-${s._id}`;
+        card.style.opacity = opacity;
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div class="att-card-name">${initials} ${s.name}</div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;color:#0369a1;cursor:pointer;">
+              <input type="checkbox" id="att-cb-m-${s._id}" ${s.included ? 'checked' : ''}
+                style="width:15px;height:15px;accent-color:#0ea5e9;"
+                onchange="toggleStudentIncluded('${s._id}')">
+              Include
+            </label>
+          </div>
+          <div class="att-card-email">${s.email}</div>
+          <div class="att-status-toggle" id="att-toggle-m-${s._id}">
+            <button class="att-status-btn ${s.status === 'present' ? 'selected-present' : ''}" onclick="setStudentStatus('${s._id}', 'present')">✅ Present</button>
+            <button class="att-status-btn ${s.status === 'absent' ? 'selected-absent' : ''}" onclick="setStudentStatus('${s._id}', 'absent')">❌ Absent</button>
+            <button class="att-status-btn ${s.status === 'late' ? 'selected-late' : ''}" onclick="setStudentStatus('${s._id}', 'late')">🕐 Late</button>
+          </div>`;
+        cards.appendChild(card);
+      });
+    }
+
+    // ── Set status for a student and refresh both views ──
+    function setStudentStatus(studentId, status) {
+      const student = attStudents.find(s => s._id === studentId);
+      if (!student) return;
+      student.status = status;
+
+      // Update both desktop and mobile toggles
+      ['d', 'm'].forEach(view => {
+        const container = document.getElementById(`att-toggle-${view}-${studentId}`);
+        if (!container) return;
+        container.querySelectorAll('.att-status-btn').forEach(btn => {
+          btn.className = 'att-status-btn';
+        });
+        const btns = container.querySelectorAll('.att-status-btn');
+        const statusClasses = { present: 'selected-present', absent: 'selected-absent', late: 'selected-late' };
+        const statusOrder = ['present', 'absent', 'late'];
+        const idx = statusOrder.indexOf(status);
+        if (idx !== -1 && btns[idx]) btns[idx].className = 'att-status-btn ' + statusClasses[status];
+      });
+    }
+
+    // ── Mark all INCLUDED students with one status ──
+    function attMarkAll(status) {
+      attStudents.filter(s => s.included).forEach(s => { s.status = status; });
+      renderAttStudents();
+    }
+
+    // ── Submit attendance (AJAX, no page refresh) ──
+    async function submitAttendance() {
+      const includedStudents = attStudents.filter(s => s.included);
+      if (!attStudentsLoaded || !includedStudents.length) {
+        showAttToast('Please load students and include at least one.', 'error');
+        return;
+      }
+
+      const date = document.getElementById('attDate').value;
+      const topic = document.getElementById('attTopic').value.trim();
+
+      if (!date) {
+        showAttToast('Please select a session date.', 'error');
+        return;
+      }
+
+      const records = includedStudents.map(s => ({ studentId: s._id, status: s.status }));
+
+      const btn = document.getElementById('attSubmitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> Submitting…';
+
+      try {
+        const res = await fetch('/api/attendance/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ date, topic, records })
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Submission failed');
+        showAttToast('✅ ' + data.message, 'success');
+      } catch (err) {
+        showAttToast('❌ ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✅</span> Submit Attendance';
+      }
+    }
+
+    // ── Reset attendance form ──
+    function resetAttendanceForm() {
+      attStudents = [];
+      attAllStudentsPool = [];
+      attStudentsLoaded = false;
+      document.getElementById('attTopic').value = '';
+      document.getElementById('attDate').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('attStudentSection').style.display = 'none';
+      document.getElementById('attEmpty').style.display = 'none';
+      document.getElementById('attSkeleton').style.display = 'none';
+      document.getElementById('attAddStudentPicker').style.display = 'none';
+      document.getElementById('attLoadBtn').innerHTML = '<span>⚡</span> Load Students';
+    }
+
+    // ── Toast notification ──
+    let attToastTimer = null;
+    function showAttToast(msg, type = 'success') {
+      let toast = document.getElementById('attToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'attToast';
+        document.body.appendChild(toast);
+      }
+      toast.className = `${type}`;
+      toast.textContent = msg;
+      // Force reflow before adding show class
+      void toast.offsetWidth;
+      toast.classList.add('show');
+
+      clearTimeout(attToastTimer);
+      attToastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    // ── History tab ──
+    async function loadAttHistory() {
+      const date = document.getElementById('attHistDate').value;
+      const container = document.getElementById('attHistResults');
+
+      // Show skeleton
+      container.innerHTML = '<div style="padding:20px;">' + Array(5).fill(
+        `<div class="att-skel-row"><div class="att-skeleton att-skel-avatar"></div><div class="att-skel-lines"><div class="att-skeleton att-skel-line-a"></div><div class="att-skeleton att-skel-line-b"></div></div></div>`
+      ).join('') + '</div>';
+
+      try {
+        const params = date ? `?date=${date}` : '';
+        const res = await fetch('/api/attendance/my-logs' + params, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        const logs = data.logs || [];
+
+        if (!logs.length) {
+          container.innerHTML = `
+            <div class="att-empty">
+              <div class="att-empty-icon">📭</div>
+              <h4>No records found</h4>
+              <p>${date ? 'No attendance submitted for ' + date + '.' : 'No attendance records yet.'}</p>
+            </div>`;
+          return;
+        }
+
+        // Group by date
+        const byDate = {};
+        logs.forEach(l => {
+          if (!byDate[l.date]) byDate[l.date] = [];
+          byDate[l.date].push(l);
+        });
+
+        let html = '<div style="overflow-x:auto;">';
+        html += '<table class="att-table"><thead><tr><th>Date</th><th>Student</th><th>Topic</th><th>Status</th><th>Submitted At</th></tr></thead><tbody>';
+
+        const statusPill = (s) => {
+          const map = { present: '🟢 Present', absent: '🔴 Absent', late: '🟡 Late' };
+          const cls = { present: 'att-pill-present', absent: 'att-pill-absent', late: 'att-pill-late' };
+          return `<span class="att-pill ${cls[s] || ''}">${map[s] || s}</span>`;
+        };
+
+        logs.forEach(l => {
+          const submittedAt = l.submittedAt ? new Date(l.submittedAt).toLocaleString() : '—';
+          html += `<tr>
+            <td>${l.date}</td>
+            <td><strong>${l.student?.name || '—'}</strong><div style="color:#64748b;font-size:0.78rem;">${l.student?.email || ''}</div></td>
+            <td style="color:#475569;">${l.topic || '—'}</td>
+            <td>${statusPill(l.status)}</td>
+            <td style="color:#94a3b8;font-size:0.8rem;">${submittedAt}</td>
+          </tr>`;
+        });
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+
+      } catch (err) {
+        container.innerHTML = `<div class="att-empty"><div class="att-empty-icon">⚠️</div><h4>Failed to load</h4><p>${err.message}</p></div>`;
+      }
+    }
+
+    function clearAttHistory() {
+      document.getElementById('attHistDate').value = '';
+      document.getElementById('attHistResults').innerHTML = `
+        <div class="att-empty">
+          <div class="att-empty-icon">📂</div>
+          <h4>No records loaded</h4>
+          <p>Select a date above and click Search.</p>
+        </div>`;
     }
 
     loadStudents();
