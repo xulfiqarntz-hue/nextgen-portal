@@ -1240,6 +1240,11 @@
       });
       const data = await res.json();
       const box = document.getElementById('chatBox');
+
+      // Remember if user was near the bottom before we wipe & re-render
+      const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      const prevCount = box.querySelectorAll('.message-row').length;
+
       box.innerHTML = '';
 
       const messages = data.messages || [];
@@ -1275,7 +1280,12 @@
         box.appendChild(row);
       });
 
-      box.scrollTop = box.scrollHeight;
+      // Scroll to bottom only if: first load, user sent a message, or user was already at the bottom
+      const isFirstLoad = prevCount === 0;
+      const hasNewMessages = messages.length > prevCount;
+      if (isFirstLoad || wasAtBottom || (hasNewMessages && wasAtBottom)) {
+        box.scrollTop = box.scrollHeight;
+      }
       renderTeacherList();
     }
 

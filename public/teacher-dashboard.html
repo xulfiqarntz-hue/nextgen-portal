@@ -1779,14 +1779,14 @@
       if (wbSocket) { wbSocket.disconnect(); wbSocket = null; }
     }
 
-    async function loadMessages(student) {
+    async function loadMessages(student, forceScroll) {
       const res = await fetch('/api/chat/conversation/' + student._id, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
       activeMessages = data.messages || [];
       updateLastMessage(student, activeMessages);
-      renderMessages();
+      renderMessages(forceScroll);
 
       if (activeMessages.length) {
         const last = activeMessages[activeMessages.length - 1];
@@ -1807,8 +1807,13 @@
       student.pinned = last.text.toLowerCase().includes('important') || student.pinned;
     }
 
-    function renderMessages() {
+    function renderMessages(forceScroll) {
       const container = document.getElementById('messages');
+
+      // Remember scroll position before wiping
+      const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+      const isFirstLoad = container.querySelectorAll('.message-row').length === 0;
+
       container.innerHTML = '';
 
       activeMessages.forEach(msg => {
@@ -1829,7 +1834,10 @@
         container.appendChild(row);
       });
 
-      container.scrollTop = container.scrollHeight;
+      // Only scroll to bottom if: first load, user sent a message (forceScroll), or user was already at the bottom
+      if (forceScroll || isFirstLoad || wasAtBottom) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
 
     async function sendMessage() {
@@ -1847,7 +1855,7 @@
       });
 
       input.value = '';
-      await loadMessages(activeStudent);
+      await loadMessages(activeStudent, true);
       renderChatList();
     }
 
