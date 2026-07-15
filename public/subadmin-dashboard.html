@@ -224,7 +224,7 @@
         <!-- subadmins cannot add other subadmins -->
         <button data-tab="subjects" onclick="selectTab('subjects')">Subjects List</button>
         <button data-tab="chat" onclick="selectTab('chat')">Chat <span class="badge">New</span></button>
-        <button data-tab="attendance" onclick="selectTab('attendance')">Attendance 📋</button>
+        <button data-tab="attendance" onclick="selectTab('attendance')">Attendance</button>
         <!-- hide expenses from subadmins -->
       </div>
 
@@ -361,7 +361,7 @@
         <div class="att-a-subpanel active" id="attASubPanelDaily">
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
             <input type="date" id="attADailyDate" style="padding:10px 14px;border-radius:12px;border:1px solid #334155;background:#111827;color:#fff;font-family:inherit;font-size:.86rem;" onchange="loadDailyStatus()">
-            <button class="button-primary" style="height:42px;" onclick="loadDailyStatus()">&#128260; Refresh</button>
+            <button class="button-primary" style="height:42px;" onclick="loadDailyStatus()">Refresh</button>
           </div>
           <div class="att-a-stat-grid">
             <div class="att-a-stat"><div class="att-a-stat-label">Total Teachers</div><div class="att-a-stat-val" id="attAStatTotal">—</div></div>
@@ -393,13 +393,13 @@
               <div class="form-group"><label>Teacher</label><select id="attALogTeacher"><option value="">All Teachers</option></select></div>
               <div class="form-group"><label>Student Name</label><input type="text" id="attALogStudent" placeholder="Search name..."></div>
               <div class="att-a-actions">
-                <button class="button-primary" onclick="loadAdminLogs()">&#128269; Search</button>
+                <button class="button-primary" onclick="loadAdminLogs()">Search</button>
                 <button class="button-secondary" onclick="clearAdminLogs()">Clear</button>
               </div>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
-              <button class="button-primary" onclick="exportAttCSV()" style="background:#0ea5e9;">&#8659; Export CSV</button>
-              <button class="button-secondary" onclick="exportAttPDF()">&#128444; Export PDF</button>
+              <button class="button-primary" onclick="exportAttCSV()" style="background:#0ea5e9;">Export CSV</button>
+              <button class="button-secondary" onclick="exportAttPDF()">Export PDF</button>
             </div>
           </div>
           <div class="card" style="padding:0;overflow:hidden;">
@@ -416,7 +416,7 @@
           <div class="card" style="margin-bottom:18px;">
             <div class="form-grid">
               <div class="form-group"><label>Select Student</label><select id="attAReportStudent"><option value="">-- Select a Student --</option></select></div>
-              <div class="form-group" style="justify-content:flex-end;display:flex;align-items:flex-end;"><button class="button-primary" onclick="loadStudentReport()">&#128202; Generate Report</button></div>
+              <div class="form-group" style="justify-content:flex-end;display:flex;align-items:flex-end;"><button class="button-primary" onclick="loadStudentReport()">Generate Report</button></div>
             </div>
           </div>
           <div class="card" id="attAReportCard">
@@ -665,7 +665,7 @@
       const dateEl = document.getElementById('attADailyDate');
       if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
       const date = dateEl.value;
-      document.getElementById('attAdminDateBadge').textContent = '\uD83D\uDCC5 ' + date;
+      document.getElementById('attAdminDateBadge').textContent = date;
       document.getElementById('attADailySkel').style.display = 'block';
       document.getElementById('attADailyTable').style.display = 'none';
       document.getElementById('attADailyEmpty').style.display = 'none';
@@ -683,8 +683,8 @@
         tbody.innerHTML = '';
         list.forEach(t => {
           const pill = t.submitted
-            ? '<span class="att-a-pill att-a-pill-done">\u2705 Submitted</span>'
-            : '<span class="att-a-pill att-a-pill-pending">\u23F3 Pending</span>';
+            ? '<span class="att-a-pill att-a-pill-done">Submitted</span>'
+            : '<span class="att-a-pill att-a-pill-pending">Pending</span>';
           const tr = document.createElement('tr');
           tr.innerHTML = `<td><strong>${t.teacherName}</strong></td><td style="color:var(--muted);font-size:.82rem;">${t.teacherEmail}</td><td style="text-align:center;">${t.totalStudents}</td><td style="text-align:center;">${t.studentsMarked}</td><td>${pill}</td>`;
           tbody.appendChild(tr);
@@ -719,7 +719,7 @@
         const res = await fetch('/api/attendance/admin-logs?' + params.toString(), { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         const logs = data.logs || [];
-        const statusPill = s => { const map={present:'\uD83D\uDFE2 Present',absent:'\uD83D\uDD34 Absent',late:'\uD83D\uDFE1 Late'},cls={present:'att-a-pill-present',absent:'att-a-pill-absent',late:'att-a-pill-late'}; return `<span class="att-a-pill ${cls[s]||''}">${map[s]||s}</span>`; };
+        const statusPill = s => { const map={present:'Present',absent:'Absent',late:'Late'},cls={present:'att-a-pill-present',absent:'att-a-pill-absent',late:'att-a-pill-late'}; return `<span class="att-a-pill ${cls[s]||''}">${map[s]||s}</span>`; };
         document.getElementById('attALogsWrap').innerHTML = `
           <div class="att-a-empty" id="attALogsEmpty" style="display:${!logs.length?'flex':'none'}"><div class="att-a-empty-icon">📭</div><h4>No records found</h4><p>Try adjusting your filters.</p></div>
           <div style="overflow-x:auto;" id="attALogsTableWrap"><table class="att-a-table" id="attALogsTable"><thead><tr><th>Date</th><th>Teacher</th><th>Student</th><th>Topic</th><th>Status</th><th>Submitted At</th></tr></thead><tbody id="attALogsBody"></tbody></table></div>`;
@@ -769,10 +769,10 @@
         if(!res.ok) throw new Error(data.error||'Failed');
         const {student,summary,records}=data;
         const {total,present,absent,late,presentPct,absentPct,latePct}=summary;
-        const rows=records.slice(0,10).map(r=>{const map={present:'\uD83D\uDFE2 Present',absent:'\uD83D\uDD34 Absent',late:'\uD83D\uDFE1 Late'},cls={present:'att-a-pill-present',absent:'att-a-pill-absent',late:'att-a-pill-late'};return `<tr><td>${r.date}</td><td style="color:var(--muted);">${r.topic||'\u2014'}</td><td><span class="att-a-pill ${cls[r.status]}">${map[r.status]}</span></td></tr>`;}).join('');
-        card.innerHTML=`<h3 style="margin:0 0 4px;">${student.name}</h3><p style="margin:0 0 20px;color:var(--muted);font-size:.85rem;">${student.email} &mdash; ${total} session(s)</p><div style="margin-bottom:20px;"><div class="att-a-bar-row"><div class="att-a-bar-label">🟢 Present</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${presentPct}%;background:#22c55e;"></div></div><div class="att-a-bar-pct" style="color:#4ade80;">${presentPct}%</div></div><div class="att-a-bar-row"><div class="att-a-bar-label">🔴 Absent</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${absentPct}%;background:#ef4444;"></div></div><div class="att-a-bar-pct" style="color:#f87171;">${absentPct}%</div></div><div class="att-a-bar-row"><div class="att-a-bar-label">🟡 Late</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${latePct}%;background:#f59e0b;"></div></div><div class="att-a-bar-pct" style="color:#fbbf24;">${latePct}%</div></div></div>${records.length?`<div style="overflow-x:auto;"><table class="att-a-table"><thead><tr><th>Date</th><th>Topic</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="note">No sessions yet.</p>'}`;
+        const rows=records.slice(0,10).map(r=>{const map={present:'Present',absent:'Absent',late:'Late'},cls={present:'att-a-pill-present',absent:'att-a-pill-absent',late:'att-a-pill-late'};return `<tr><td>${r.date}</td><td style="color:var(--muted);">${r.topic||'\u2014'}</td><td><span class="att-a-pill ${cls[r.status]}">${map[r.status]}</span></td></tr>`;}).join('');
+        card.innerHTML=`<h3 style="margin:0 0 4px;">${student.name}</h3><p style="margin:0 0 20px;color:var(--muted);font-size:.85rem;">${student.email} &mdash; ${total} session(s)</p><div style="margin-bottom:20px;"><div class="att-a-bar-row"><div class="att-a-bar-label">Present</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${presentPct}%;background:#22c55e;"></div></div><div class="att-a-bar-pct" style="color:#4ade80;">${presentPct}%</div></div><div class="att-a-bar-row"><div class="att-a-bar-label">Absent</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${absentPct}%;background:#ef4444;"></div></div><div class="att-a-bar-pct" style="color:#f87171;">${absentPct}%</div></div><div class="att-a-bar-row"><div class="att-a-bar-label">Late</div><div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${latePct}%;background:#f59e0b;"></div></div><div class="att-a-bar-pct" style="color:#fbbf24;">${latePct}%</div></div></div>${records.length?`<div style="overflow-x:auto;"><table class="att-a-table"><thead><tr><th>Date</th><th>Topic</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="note">No sessions yet.</p>'}`;
       } catch(err) {
-        card.innerHTML=`<div class="att-a-empty"><div class="att-a-empty-icon">⚠️</div><h4>Failed to load</h4><p>${err.message}</p></div>`;
+        card.innerHTML=`<div class="att-a-empty"><div class="att-a-empty-icon"></div><h4>Failed to load</h4><p>${err.message}</p></div>`;
       }
     }
 
