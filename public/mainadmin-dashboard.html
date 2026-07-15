@@ -424,13 +424,15 @@
               </div>
               <div class="form-group">
                 <label>Teacher</label>
-                <select id="attALogTeacher">
+                <select id="attALogTeacher" onchange="populateAttLogStudentFilter()">
                   <option value="">All Teachers</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Student Name</label>
-                <input type="text" id="attALogStudent" placeholder="Search name...">
+                <label>Student</label>
+                <select id="attALogStudent">
+                  <option value="">-- All Students --</option>
+                </select>
               </div>
               <div class="att-a-actions">
                 <button class="button-primary" onclick="loadAdminLogs()">&#128269; Search</button>
@@ -472,15 +474,24 @@
         <!-- ── SUBPANEL: STUDENT REPORT ── -->
         <div class="att-a-subpanel" id="attASubPanelReport">
           <div class="card" style="margin-bottom:18px;">
-            <div class="form-grid">
+            <div class="att-a-filter-bar">
               <div class="form-group">
                 <label>Select Student</label>
                 <select id="attAReportStudent">
                   <option value="">-- Select a Student --</option>
                 </select>
               </div>
-              <div class="form-group" style="justify-content:flex-end;display:flex;align-items:flex-end;">
+              <div class="form-group">
+                <label>Date From</label>
+                <input type="date" id="attAReportFrom">
+              </div>
+              <div class="form-group">
+                <label>Date To</label>
+                <input type="date" id="attAReportTo">
+              </div>
+              <div class="att-a-actions">
                 <button class="button-primary" onclick="loadStudentReport()">&#128202; Generate Report</button>
+                <button class="button-secondary" onclick="clearStudentReport()">Clear</button>
               </div>
             </div>
           </div>
@@ -932,13 +943,50 @@
         opt.textContent = t.name;
         sel.appendChild(opt);
       });
+      // Populate student dropdown initially with all students
+      populateAttLogStudentFilter();
+    }
+
+    function populateAttLogStudentFilter() {
+      const teacherSel = document.getElementById('attALogTeacher');
+      const studentSel = document.getElementById('attALogStudent');
+      const selectedTeacherId = teacherSel ? teacherSel.value : '';
+
+      studentSel.innerHTML = '<option value="">-- All Students --</option>';
+
+      let studentsToShow = window.students || [];
+
+      // If a teacher is selected, filter to only their assigned students
+      if (selectedTeacherId) {
+        studentsToShow = studentsToShow.filter(s =>
+          (s.assignedTeachers || []).some(t =>
+            (t._id || t) === selectedTeacherId
+          )
+        );
+      }
+
+      if (studentsToShow.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '-- No students assigned --';
+        opt.disabled = true;
+        studentSel.appendChild(opt);
+        return;
+      }
+
+      studentsToShow.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s._id;
+        opt.textContent = s.name;
+        studentSel.appendChild(opt);
+      });
     }
 
     async function loadAdminLogs() {
       const dateFrom = document.getElementById('attALogFrom').value;
       const dateTo   = document.getElementById('attALogTo').value;
       const teacherId = document.getElementById('attALogTeacher').value;
-      const studentName = document.getElementById('attALogStudent').value.trim();
+      const studentId = document.getElementById('attALogStudent').value;
 
       const emptyEl = document.getElementById('attALogsEmpty');
       const tableWrap = document.getElementById('attALogsTableWrap');
@@ -956,7 +1004,7 @@
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo)   params.set('dateTo', dateTo);
       if (teacherId) params.set('teacherId', teacherId);
-      if (studentName) params.set('studentName', studentName);
+      if (studentId) params.set('studentId', studentId);
 
       try {
         const res = await fetch('/api/attendance/admin-logs?' + params.toString(), {
@@ -965,25 +1013,82 @@
         const data = await res.json();
         const logs = data.logs || [];
 
-        // Restore actual table elements
+        if (!logs.length) {
+          document.getElementById('attALogsWrap').innerHTML = `
+            <div class="att-a-empty" id="attALogsEmpty">
+              <div class="att-a-empty-icon">📭</div>
+              <h4>No records found</h4>
+              <p>Try adjusting your filters.</p>
+            </div>`;
+          return;
+        }
+
+        // ── Compute summary from returned logs ──
+        const total   = logs.length;
+        const present = logs.filter(l => l.status === 'present').length;
+        const absent  = logs.filter(l => l.status === 'absent').length;
+        const late    = logs.filter(l => l.status === 'late').length;
+        const pct     = n => total > 0 ? Math.round((n / total) * 100) : 0;
+
+        const presentPct = pct(present);
+        const absentPct  = pct(absent);
+        const latePct    = pct(late);
+
+        // ── Rebuild wrap with summary + table ──
         document.getElementById('attALogsWrap').innerHTML = `
-          <div class="att-a-empty" id="attALogsEmpty" style="display:none;">
-            <div class="att-a-empty-icon">📭</div>
-            <h4>No records found</h4>
-            <p>Try adjusting your filters.</p>
+
+          <!-- Stat cards -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;padding:18px 18px 0;">
+            <div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:10px 20px;min-width:100px;text-align:center;flex:1;">
+              <div style="font-size:1.6rem;font-weight:700;color:#4ade80;">${present}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Present</div>
+            </div>
+            <div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:10px 20px;min-width:100px;text-align:center;flex:1;">
+              <div style="font-size:1.6rem;font-weight:700;color:#f87171;">${absent}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Absent</div>
+            </div>
+            <div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:10px 20px;min-width:100px;text-align:center;flex:1;">
+              <div style="font-size:1.6rem;font-weight:700;color:#fbbf24;">${late}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Late</div>
+            </div>
+            <div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:10px 20px;min-width:100px;text-align:center;flex:1;">
+              <div style="font-size:1.6rem;font-weight:700;color:#a5b4fc;">${total}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Total</div>
+            </div>
           </div>
+
+          <!-- Progress bars -->
+          <div style="padding:14px 18px 4px;">
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">🟢 Present</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${presentPct}%;background:#22c55e;"></div></div>
+              <div class="att-a-bar-pct" style="color:#4ade80;">${presentPct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:48px;text-align:right;">${present}/${total}</div>
+            </div>
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">🔴 Absent</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${absentPct}%;background:#ef4444;"></div></div>
+              <div class="att-a-bar-pct" style="color:#f87171;">${absentPct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:48px;text-align:right;">${absent}/${total}</div>
+            </div>
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">🟡 Late</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${latePct}%;background:#f59e0b;"></div></div>
+              <div class="att-a-bar-pct" style="color:#fbbf24;">${latePct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:48px;text-align:right;">${late}/${total}</div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div style="margin:10px 18px;border-top:1px solid rgba(255,255,255,.06);"></div>
+
+          <!-- Results table -->
           <div style="overflow-x:auto;" id="attALogsTableWrap">
             <table class="att-a-table" id="attALogsTable">
               <thead><tr><th>Date</th><th>Teacher</th><th>Student</th><th>Topic</th><th>Status</th><th>Submitted At</th></tr></thead>
               <tbody id="attALogsBody"></tbody>
             </table>
           </div>`;
-
-        if (!logs.length) {
-          document.getElementById('attALogsEmpty').style.display = 'flex';
-          document.getElementById('attALogsTableWrap').style.display = 'none';
-          return;
-        }
 
         const statusPill = s => {
           const map = { present: '\uD83D\uDFE2 Present', absent: '\uD83D\uDD34 Absent', late: '\uD83D\uDFE1 Late' };
@@ -1012,11 +1117,12 @@
     }
 
     function clearAdminLogs() {
-      ['attALogFrom','attALogTo','attALogStudent'].forEach(id => {
+      ['attALogFrom','attALogTo'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
       document.getElementById('attALogTeacher').value = '';
+      populateAttLogStudentFilter(); // reset student dropdown to all students
       document.getElementById('attALogsWrap').innerHTML = `
         <div class="att-a-empty" id="attALogsEmpty">
           <div class="att-a-empty-icon">📂</div>
@@ -1029,12 +1135,12 @@
       const dateFrom = document.getElementById('attALogFrom').value;
       const dateTo   = document.getElementById('attALogTo').value;
       const teacherId = document.getElementById('attALogTeacher').value;
-      const studentName = document.getElementById('attALogStudent').value.trim();
+      const studentId = document.getElementById('attALogStudent').value;
       const params = new URLSearchParams();
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo)   params.set('dateTo', dateTo);
       if (teacherId) params.set('teacherId', teacherId);
-      if (studentName) params.set('studentName', studentName);
+      if (studentId) params.set('studentId', studentId);
       const url = '/api/attendance/export-csv?' + params.toString();
       // Create a temporary anchor with the auth token
       const a = document.createElement('a');
@@ -1073,6 +1179,8 @@
 
     async function loadStudentReport() {
       const studentId = document.getElementById('attAReportStudent').value;
+      const dateFrom  = document.getElementById('attAReportFrom').value;
+      const dateTo    = document.getElementById('attAReportTo').value;
       const card = document.getElementById('attAReportCard');
       if (!studentId) {
         card.innerHTML = '<div class="att-a-empty"><div class="att-a-empty-icon">💡</div><h4>Select a student first</h4><p>Use the dropdown above.</p></div>';
@@ -1082,7 +1190,11 @@
       card.innerHTML = `<div style="padding:16px;">${Array(4).fill('<div class="att-a-skel-row"><div class="att-a-skel att-a-skel-circle"></div><div class="att-a-skel-lines"><div class="att-a-skel att-a-skel-line" style="width:60%;"></div></div></div>').join('')}</div>`;
 
       try {
-        const res = await fetch('/api/attendance/student-report/' + studentId, {
+        const params = new URLSearchParams();
+        if (dateFrom) params.set('dateFrom', dateFrom);
+        if (dateTo)   params.set('dateTo', dateTo);
+
+        const res = await fetch('/api/attendance/student-report/' + studentId + '?' + params.toString(), {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await res.json();
@@ -1091,47 +1203,98 @@
         const { student, summary, records } = data;
         const { total, present, absent, late, presentPct, absentPct, latePct } = summary;
 
-        const recentRows = records.slice(0, 10).map(r => {
+        // Build date range label
+        const rangeLabel = (dateFrom || dateTo)
+          ? `<span style="font-size:.8rem;background:rgba(99,102,241,.15);color:#818cf8;border-radius:8px;padding:3px 10px;margin-left:10px;">
+               📅 ${dateFrom || '—'} → ${dateTo || '—'}
+             </span>`
+          : '';
+
+        // Summary stat pills
+        const statPills = `
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+            <div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:10px 18px;min-width:100px;text-align:center;">
+              <div style="font-size:1.6rem;font-weight:700;color:#4ade80;">${present}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Present</div>
+            </div>
+            <div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:10px 18px;min-width:100px;text-align:center;">
+              <div style="font-size:1.6rem;font-weight:700;color:#f87171;">${absent}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Absent</div>
+            </div>
+            <div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:10px 18px;min-width:100px;text-align:center;">
+              <div style="font-size:1.6rem;font-weight:700;color:#fbbf24;">${late}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Late</div>
+            </div>
+            <div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:10px 18px;min-width:100px;text-align:center;">
+              <div style="font-size:1.6rem;font-weight:700;color:#a5b4fc;">${total}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Total</div>
+            </div>
+          </div>`;
+
+        // Progress bars with % + count
+        const bars = `
+          <div style="margin-bottom:24px;">
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">🟢 Present</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${presentPct}%;background:#22c55e;"></div></div>
+              <div class="att-a-bar-pct" style="color:#4ade80;">${presentPct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:42px;text-align:right;">${present}/${total}</div>
+            </div>
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">🔴 Absent</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${absentPct}%;background:#ef4444;"></div></div>
+              <div class="att-a-bar-pct" style="color:#f87171;">${absentPct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:42px;text-align:right;">${absent}/${total}</div>
+            </div>
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">🟡 Late</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${latePct}%;background:#f59e0b;"></div></div>
+              <div class="att-a-bar-pct" style="color:#fbbf24;">${latePct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:42px;text-align:right;">${late}/${total}</div>
+            </div>
+          </div>`;
+
+        // Full session list (all records in date range)
+        const allRows = records.map(r => {
           const map = { present: '\uD83D\uDFE2 Present', absent: '\uD83D\uDD34 Absent', late: '\uD83D\uDFE1 Late' };
           const cls = { present: 'att-a-pill-present', absent: 'att-a-pill-absent', late: 'att-a-pill-late' };
           return `<tr><td>${r.date}</td><td style="color:var(--muted);">${r.topic || '\u2014'}</td><td><span class="att-a-pill ${cls[r.status]}">${map[r.status]}</span></td></tr>`;
         }).join('');
 
         card.innerHTML = `
-          <h3 style="margin:0 0 4px;">${student.name}</h3>
-          <p style="margin:0 0 20px;color:var(--muted);font-size:.85rem;">${student.email} &mdash; ${total} total session(s)</p>
-
-          <div style="margin-bottom:20px;">
-            <div class="att-a-bar-row">
-              <div class="att-a-bar-label">🟢 Present</div>
-              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${presentPct}%;background:#22c55e;"></div></div>
-              <div class="att-a-bar-pct" style="color:#4ade80;">${presentPct}%</div>
-            </div>
-            <div class="att-a-bar-row">
-              <div class="att-a-bar-label">🔴 Absent</div>
-              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${absentPct}%;background:#ef4444;"></div></div>
-              <div class="att-a-bar-pct" style="color:#f87171;">${absentPct}%</div>
-            </div>
-            <div class="att-a-bar-row">
-              <div class="att-a-bar-label">🟡 Late</div>
-              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${latePct}%;background:#f59e0b;"></div></div>
-              <div class="att-a-bar-pct" style="color:#fbbf24;">${latePct}%</div>
-            </div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
+            <h3 style="margin:0;">${student.name}</h3>${rangeLabel}
           </div>
+          <p style="margin:0 0 20px;color:var(--muted);font-size:.85rem;">${student.email} &mdash; ${total} session(s) in selected period</p>
+
+          ${statPills}
+          ${bars}
 
           ${records.length ? `
-          <h4 style="margin:0 0 10px;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;">Recent Sessions</h4>
+          <h4 style="margin:0 0 10px;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;">All Sessions (${records.length})</h4>
           <div style="overflow-x:auto;">
             <table class="att-a-table">
               <thead><tr><th>Date</th><th>Topic</th><th>Status</th></tr></thead>
-              <tbody>${recentRows}</tbody>
+              <tbody>${allRows}</tbody>
             </table>
-          </div>` : '<p class="note">No sessions recorded yet.</p>'}
+          </div>` : '<p class="note">No sessions recorded for this period.</p>'}
         `;
 
       } catch (err) {
         card.innerHTML = `<div class="att-a-empty"><div class="att-a-empty-icon">⚠️</div><h4>Failed to load report</h4><p>${err.message}</p></div>`;
       }
+    }
+
+    function clearStudentReport() {
+      document.getElementById('attAReportStudent').value = '';
+      document.getElementById('attAReportFrom').value = '';
+      document.getElementById('attAReportTo').value = '';
+      document.getElementById('attAReportCard').innerHTML = `
+        <div class="att-a-empty">
+          <div class="att-a-empty-icon">📊</div>
+          <h4>Select a student</h4>
+          <p>Choose a student above and click Generate Report.</p>
+        </div>`;
     }
 
     loadAllData();

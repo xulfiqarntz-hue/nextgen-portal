@@ -92,15 +92,15 @@ router.get(
 /* ─────────────────────────────────────────────────────────────────────────
    GET /api/attendance/admin-logs
    Admin / Sub-admin views all attendance records with filters
-   Query params: dateFrom, dateTo, teacherId, studentName
-───────────────────────────────────────────────────────────────────────── */
+   Query params: dateFrom, dateTo, teacherId, studentId, studentName (legacy)
+─────────────────────────────────────────────────────────────────────────── */
 router.get(
   '/admin-logs',
   verifyToken,
   allowRoles('mainadmin', 'subadmin'),
   async (req, res) => {
     try {
-      const { dateFrom, dateTo, teacherId, studentName } = req.query;
+      const { dateFrom, dateTo, teacherId, studentId, studentName } = req.query;
 
       const filter = {};
 
@@ -111,6 +111,8 @@ router.get(
       }
 
       if (teacherId) filter.teacher = teacherId;
+      // Filter directly in DB when a specific student is selected
+      if (studentId) filter.student = studentId;
 
       let query = Attendance.find(filter)
         .populate('teacher', 'name email')
@@ -120,8 +122,8 @@ router.get(
 
       let logs = await query;
 
-      // Post-filter by studentName (case-insensitive) — easier than a regex across populated field
-      if (studentName) {
+      // Legacy: Post-filter by studentName (case-insensitive) if no studentId
+      if (!studentId && studentName) {
         const lower = studentName.toLowerCase();
         logs = logs.filter(
           (l) => l.student && l.student.name.toLowerCase().includes(lower)
@@ -190,14 +192,14 @@ router.get(
 /* ─────────────────────────────────────────────────────────────────────────
    GET /api/attendance/export-csv
    Streams a CSV file of attendance logs (same filter params as admin-logs)
-───────────────────────────────────────────────────────────────────────── */
+─────────────────────────────────────────────────────────────────────────── */
 router.get(
   '/export-csv',
   verifyToken,
   allowRoles('mainadmin', 'subadmin'),
   async (req, res) => {
     try {
-      const { dateFrom, dateTo, teacherId, studentName } = req.query;
+      const { dateFrom, dateTo, teacherId, studentId, studentName } = req.query;
 
       const filter = {};
       if (dateFrom || dateTo) {
@@ -206,6 +208,7 @@ router.get(
         if (dateTo) filter.date.$lte = dateTo;
       }
       if (teacherId) filter.teacher = teacherId;
+      if (studentId) filter.student = studentId;
 
       let logs = await Attendance.find(filter)
         .populate('teacher', 'name email')
@@ -213,7 +216,8 @@ router.get(
         .sort({ date: -1 })
         .lean();
 
-      if (studentName) {
+      // Legacy: filter by student name text if no specific studentId
+      if (!studentId && studentName) {
         const lower = studentName.toLowerCase();
         logs = logs.filter(
           (l) => l.student && l.student.name.toLowerCase().includes(lower)
@@ -254,6 +258,7 @@ router.get(
 /* ─────────────────────────────────────────────────────────────────────────
    GET /api/attendance/student-report/:studentId
    Returns a summary of a student's attendance (counts + percentage)
+   Optional query params: dateFrom, dateTo (YYYY-MM-DD) to filter by range
 ───────────────────────────────────────────────────────────────────────── */
 router.get(
   '/student-report/:studentId',
@@ -266,14 +271,23 @@ router.get(
         return res.status(404).json({ error: 'Student not found.' });
       }
 
-      const records = await Attendance.find({ student: req.params.studentId })
+      const { dateFrom, dateTo } = req.query;
+
+      const filter = { student: req.params.studentId };
+      if (dateFrom || dateTo) {
+        filter.date = {};
+        if (dateFrom) filter.date.$gte = dateFrom;
+        if (dateTo)   filter.date.$lte = dateTo;
+      }
+
+      const records = await Attendance.find(filter)
         .sort({ date: -1 })
         .lean();
 
       const total = records.length;
       const present = records.filter((r) => r.status === 'present').length;
-      const absent = records.filter((r) => r.status === 'absent').length;
-      const late = records.filter((r) => r.status === 'late').length;
+      const absent  = records.filter((r) => r.status === 'absent').length;
+      const late    = records.filter((r) => r.status === 'late').length;
 
       const pct = (n) => (total > 0 ? Math.round((n / total) * 100) : 0);
 
@@ -285,8 +299,8 @@ router.get(
           absent,
           late,
           presentPct: pct(present),
-          absentPct: pct(absent),
-          latePct: pct(late),
+          absentPct:  pct(absent),
+          latePct:    pct(late),
         },
         records,
       });
