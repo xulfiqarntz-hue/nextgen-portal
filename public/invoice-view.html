@@ -145,13 +145,13 @@
         <div class="totals-label">Total Discount</div>
         <div class="totals-value" id="totalDiscount">--</div>
       </div>
-      <div class="totals-row total-line">
-        <div class="totals-label">Amount Due</div>
-        <div class="totals-value" id="amountDue">--</div>
-      </div>
       <div class="totals-row">
         <div class="totals-label">Arrears / Outstanding Bal</div>
         <div class="totals-value" id="totalArrears">0.00</div>
+      </div>
+      <div class="totals-row total-line">
+        <div class="totals-label">Total Fee</div>
+        <div class="totals-value" id="totalFee">--</div>
       </div>
     </div>
 
@@ -249,7 +249,7 @@
         document.getElementById('subTotal').innerText = payment.toFixed(2);
         document.getElementById('totalDiscount').innerText = discount.toFixed(2);
         document.getElementById('totalArrears').innerText = arrears.toFixed(2);
-        document.getElementById('amountDue').innerText = total.toFixed(2);
+        document.getElementById('totalFee').innerText = total.toFixed(2);
 
         // Store invoice data for PDF
         window.invoiceData = {
