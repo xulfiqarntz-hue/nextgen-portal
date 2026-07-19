@@ -1040,12 +1040,64 @@
 
     let jitsiApi = null;
 
+    /* ── Call Signaling & Popup ── */
+    const callSocket = io();
+    let pendingCallRoom = null;
+    let pendingCallerName = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const popup = document.createElement('div');
+      popup.id = 'incomingCallPopup';
+      popup.style.cssText = 'display:none; position:fixed; top:20px; right:20px; background:#fff; color:#000; padding:20px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:99999; text-align:center; min-width: 200px;';
+      popup.innerHTML = `
+        <h4 style="margin:0 0 10px 0;">Incoming Call</h4>
+        <p id="incomingCallName" style="margin:0 0 15px 0;">from ...</p>
+        <button onclick="acceptCall()" style="background:#28a745; color:#fff; border:none; padding:8px 16px; border-radius:5px; cursor:pointer; font-weight:bold;">Accept</button>
+        <button onclick="declineCall()" style="background:#dc3545; color:#fff; border:none; padding:8px 16px; border-radius:5px; cursor:pointer; margin-left:10px; font-weight:bold;">Decline</button>
+      `;
+      document.body.appendChild(popup);
+    });
+
+    callSocket.on('connect', () => {
+      const uId = localStorage.getItem('userId');
+      if (uId) callSocket.emit('call:register', uId);
+    });
+
+    callSocket.on('call:incoming', (data) => {
+      pendingCallRoom = data.roomName;
+      pendingCallerName = data.callerName;
+      document.getElementById('incomingCallName').innerText = 'from ' + data.callerName;
+      document.getElementById('incomingCallPopup').style.display = 'block';
+    });
+
+    // Make functions globally available for inline onclick
+    window.acceptCall = function() {
+      document.getElementById('incomingCallPopup').style.display = 'none';
+      if (pendingCallRoom) {
+        openCallRoom(pendingCallRoom, pendingCallerName);
+      }
+    };
+
+    window.declineCall = function() {
+      document.getElementById('incomingCallPopup').style.display = 'none';
+    };
+
     function startCall() {
       if (!activeTeacherId) return;
       const [a, b] = getSortedIds();
       const roomName = 'ngp-call-' + a + '-' + b;
 
-      document.getElementById('callMeta').innerText = 'With your teacher — Room ready';
+      if (callSocket && callSocket.connected) {
+        const uId = localStorage.getItem('userId');
+        const myName = localStorage.getItem('name');
+        callSocket.emit('call:start', { callerId: uId, calleeId: activeTeacherId, callerName: myName, roomName: roomName });
+      }
+
+      openCallRoom(roomName, 'your teacher');
+    }
+
+    function openCallRoom(roomName, displayName) {
+      document.getElementById('callMeta').innerText = 'With ' + displayName + ' — Room ready';
       document.getElementById('callLoading').style.display = 'flex';
       document.getElementById('callOverlay').classList.add('open');
 

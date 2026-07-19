@@ -54,7 +54,18 @@ io.on('connection', (socket) => {
     // Broadcast to other users in the room
     socket.to(roomId).emit('wb:update', elements);
   });
+
+  // Call signaling
+  socket.on('call:register', (userId) => {
+    if (userId) socket.join(userId);
+  });
+  
+  socket.on('call:start', (data) => {
+    // data: { callerId, calleeId, callerName, roomName }
+    socket.to(data.calleeId).emit('call:incoming', data);
+  });
 });
+
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/login.html');
