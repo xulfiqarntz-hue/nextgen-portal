@@ -1271,7 +1271,10 @@
             <h3>🖊 Collaborative Whiteboard</h3>
             <div class="overlay-meta" id="wbMeta">Shared with your student</div>
           </div>
-          <button class="btn-end" onclick="closeWhiteboard()">✕ Close</button>
+          <div>
+            <button class="btn-end" style="background:rgba(255,255,255,0.15); margin-right:8px;" onclick="toggleWbFullscreen()">⛶ Fullscreen</button>
+            <button class="btn-end" onclick="closeWhiteboard()">✕ Close</button>
+          </div>
         </div>
         <div class="overlay-body" style="padding:0;overflow:hidden;flex:1;display:flex;flex-direction:column;">
           <div id="excalidrawContainer" style="width: 100%; flex: 1; min-height: 500px;"></div>
@@ -1829,6 +1832,19 @@
       if (!overlay.classList.contains('open')) return;
       overlay.classList.remove('open');
       if (wbSocket) { wbSocket.disconnect(); wbSocket = null; }
+    }
+
+    function toggleWbFullscreen() {
+      const wb = document.getElementById('whiteboardOverlay');
+      if (!document.fullscreenElement) {
+        if (wb.requestFullscreen) {
+          wb.requestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
     }
 
     async function loadMessages(student, forceScroll) {
