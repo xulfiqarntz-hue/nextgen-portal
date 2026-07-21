@@ -7,7 +7,16 @@ const router = express.Router();
 
 router.post('/send', verifyToken, async (req, res) => {
   try {
-    const { receiverId, text } = req.body;
+    let { receiverId, text } = req.body;
+
+    // Filter email addresses
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
+    text = text.replace(emailRegex, '[CONTACT INFO REMOVED]');
+
+    // Filter phone numbers (basic detection for sequences of 7+ digits with optional separators)
+    const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+    text = text.replace(phoneRegex, '[CONTACT INFO REMOVED]');
+
     const newMessage = new Message({
       sender: req.user.id,
       receiver: receiverId,
