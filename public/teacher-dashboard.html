@@ -13,6 +13,11 @@
     window.EXCALIDRAW_ASSET_PATH = "https://unpkg.com/@excalidraw/excalidraw@0.17.3/dist/";
   </script>
   <style>
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
     :root {
       --bg: #1E40AF;
       --panel: #1E3A8A;
@@ -1248,7 +1253,7 @@
           <div>
             <h3>📞 Audio Call</h3>
             <div class="overlay-meta" id="callMeta">Connecting…</div>
-            <div style="color: #ffcccc; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">⚠️ WARNING: ADMIN IS MONITORING THE CALL</div>
+            <div style="color: #ffcccc; font-size: 0.85rem; margin-top: 4px; font-weight: 600; animation: blink 1.5s infinite;">⚠️ WARNING: ADMIN IS MONITORING THE CALL</div>
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button onclick="openWhiteboardFromCall()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Open Whiteboard">🖊 <span class="min-text">Whiteboard</span></button>
