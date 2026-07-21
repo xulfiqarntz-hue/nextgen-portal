@@ -935,7 +935,7 @@
               bubble.style.borderBottomLeftRadius = '4px';
             }
             bubble.innerText = m.text;
-            bubble.innerHTML = bubble.innerHTML.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">$1</a>');
+            bubble.innerHTML = bubble.innerHTML.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">$1</a>');
             
             const time = document.createElement('div');
             time.style.cssText = 'font-size:0.7rem; color:var(--muted); margin-top:4px;';
