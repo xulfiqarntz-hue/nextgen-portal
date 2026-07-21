@@ -1618,10 +1618,15 @@
       document.getElementById('incomingCallPopup').style.display = 'block';
     });
 
+    let callStartTime = null;
+    let isCaller = false;
+
     // Make functions globally available for inline onclick
     window.acceptCall = function() {
       document.getElementById('incomingCallPopup').style.display = 'none';
       if (pendingCallRoom) {
+        callStartTime = new Date();
+        isCaller = false;
         openCallRoom(pendingCallRoom, pendingCallerName);
       }
     };
@@ -1634,6 +1639,9 @@
       if (!activeStudent) return;
       const [a, b] = getSortedIds();
       const roomName = 'ngp-call-' + a + '-' + b;
+      
+      callStartTime = new Date();
+      isCaller = true;
       
       if (callSocket && callSocket.connected) {
         const uId = localStorage.getItem('userId');
@@ -1705,7 +1713,7 @@
       }, 400);
     }
 
-    function endCall() {
+    async function endCall() {
       const overlay = document.getElementById('callOverlay');
       if (!overlay.classList.contains('open')) return;
       if (jitsiApi) {
@@ -1715,6 +1723,36 @@
       document.getElementById('callContainer').innerHTML = '';
       overlay.classList.remove('open');
       overlay.classList.remove('minimized');
+
+      if (callStartTime && isCaller && activeStudent) {
+        const endTime = new Date();
+        const durationMs = endTime - callStartTime;
+        const minutes = Math.floor(durationMs / 60000);
+        const seconds = Math.floor((durationMs % 60000) / 1000);
+        const durationStr = `${minutes}m ${seconds}s`;
+        const startStr = callStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const endStr = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const msgText = `☎️ Call ended | Started: ${startStr} | Ended: ${endStr} | Duration: ${durationStr}`;
+        
+        callStartTime = null;
+        isCaller = false;
+
+        try {
+          await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + (typeof token !== 'undefined' ? token : localStorage.getItem('token'))
+            },
+            body: JSON.stringify({ receiverId: activeStudent._id, text: msgText })
+          });
+          await loadMessages(activeStudent, true);
+          if (typeof renderChatList === 'function') renderChatList();
+        } catch(e) { console.error('Failed to send call duration message', e); }
+      } else {
+        callStartTime = null;
+        isCaller = false;
+      }
     }
 
     function toggleMinimizeCall() {
