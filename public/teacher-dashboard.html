@@ -293,6 +293,8 @@
       min-width: 100px;
       max-width: 100%;
       box-shadow: 0 10px 25px rgba(30, 58, 138, 0.08);
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     .message-row.teacher .message-bubble {
@@ -1644,6 +1646,7 @@
     });
 
     let callStartTime = null;
+    let callJoinedTime = null;
     let isCaller = false;
 
     // Make functions globally available for inline onclick
@@ -1651,6 +1654,7 @@
       document.getElementById('incomingCallPopup').style.display = 'none';
       if (pendingCallRoom) {
         callStartTime = new Date();
+        callJoinedTime = new Date();
         isCaller = false;
         openCallRoom(pendingCallRoom, pendingCallerName);
       }
@@ -1666,6 +1670,7 @@
       const roomName = 'ngp-call-' + a + '-' + b;
       
       callStartTime = new Date();
+      callJoinedTime = null;
       isCaller = true;
       
       if (callSocket && callSocket.connected) {
@@ -1729,6 +1734,7 @@
           const onReady = () => { clearTimeout(fallbackTimer); hideLoader(); };
           jitsiApi.addEventListener('videoConferenceJoined', onReady);
           jitsiApi.addEventListener('audioMuteStatusChanged', onReady);
+          jitsiApi.addEventListener('participantJoined', () => { if (!callJoinedTime) callJoinedTime = new Date(); });
           jitsiApi.addEventListener('readyToClose', () => { endCall(); });
         } catch(err) {
           clearTimeout(fallbackTimer);
@@ -1751,10 +1757,13 @@
 
       if (callStartTime && isCaller && activeStudent) {
         const endTime = new Date();
-        const durationMs = endTime - callStartTime;
-        const minutes = Math.floor(durationMs / 60000);
-        const seconds = Math.floor((durationMs % 60000) / 1000);
-        const durationStr = `${minutes}m ${seconds}s`;
+        let durationStr = "0m 0s (Unanswered)";
+        if (callJoinedTime) {
+          const durationMs = endTime - callJoinedTime;
+          const minutes = Math.floor(Math.max(0, durationMs) / 60000);
+          const seconds = Math.floor((Math.max(0, durationMs) % 60000) / 1000);
+          durationStr = `${minutes}m ${seconds}s`;
+        }
         const startStr = callStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const endStr = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const msgText = `☎️ Call ended | Started: ${startStr} | Ended: ${endStr} | Duration: ${durationStr}`;
