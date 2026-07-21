@@ -630,6 +630,10 @@
     const role = localStorage.getItem('role');
     const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','add-subadmin','subjects','chat','direct-chat','invoices','expenses','attendance'];
 
+    let directChatUsers = [];
+    let activeDirectChatUser = null;
+    let directChatPollInterval = null;
+
     if (!token || role !== 'mainadmin') {
       window.location.href = '/login.html';
     }
@@ -1421,9 +1425,6 @@
     }
 
     /* ── DIRECT CHAT SECTION ── */
-    let directChatUsers = [];
-    let activeDirectChatUser = null;
-    let directChatPollInterval = null;
 
     async function loadDirectChatUsers() {
       try {
