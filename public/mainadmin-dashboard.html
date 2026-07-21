@@ -238,11 +238,9 @@
         <button data-tab="tutors" onclick="selectTab('tutors')">Tutors <span id="tutorBadge" class="badge">0</span></button>
         <button data-tab="add-tutor" onclick="selectTab('add-tutor')">Add Tutor</button>
         <button data-tab="add-subadmin" onclick="selectTab('add-subadmin')">Add Sub Admin</button>
-        <button data-tab="subjects" onclick="selectTab('subjects')">Subjects List</button>
         <button data-tab="chat" onclick="selectTab('chat')">Chat <span class="badge">New</span></button>
         <button data-tab="direct-chat" onclick="selectTab('direct-chat')">Admin Direct Chat <span class="badge" style="background:#38bdf8;color:#0b1220;">Live</span></button>
         <button data-tab="invoices" onclick="selectTab('invoices')">Invoices</button>
-        <button data-tab="expenses" onclick="selectTab('expenses')">Expenses</button>
         <button data-tab="attendance" onclick="selectTab('attendance')">Attendance</button>
       </div>
 
@@ -356,14 +354,6 @@
         </div>
       </section>
 
-      <section id="subjects" class="section">
-        <header><h3>Subjects List</h3></header>
-        <div class="card">
-          <ul class="subject-list" id="subjectList"></ul>
-          <p class="note">Subject management is ready to be expanded with codes, classes, and schedules.</p>
-        </div>
-      </section>
-
       <section id="chat" class="section">
         <header><h3>Chat Viewer</h3></header>
         <div class="card">
@@ -449,13 +439,6 @@
             </thead>
             <tbody id="invoiceTableBody"></tbody>
           </table>
-        </div>
-      </section>
-
-      <section id="expenses" class="section">
-        <header><h3>Expenses</h3></header>
-        <div class="card">
-          <p class="note">This area is reserved for finance tracking, expense reports, and budgeting.</p>
         </div>
       </section>
 
@@ -628,7 +611,7 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
-    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','add-subadmin','subjects','chat','direct-chat','invoices','expenses','attendance'];
+    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','add-subadmin','chat','direct-chat','invoices','attendance'];
 
     let directChatUsers = [];
     let activeDirectChatUser = null;
@@ -662,7 +645,6 @@
       renderStudentTable();
       renderTutorTable();
       populateSelects();
-      renderSubjects();
       loadInvoices();
     }
 

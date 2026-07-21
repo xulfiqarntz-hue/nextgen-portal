@@ -10,7 +10,7 @@ router.get('/dummy', (req, res) => {
   res.json({ message: 'This is a dummy route for testing purposes.' });
 });
 
-router.post('/create', verifyToken, allowRoles('mainadmin'), async (req, res) => {
+router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
     const { studentId, teacherId, month, payment, subjects, discount, arrears, bankAccountNo, bankName, className } = req.body;
     console.log('Invoice create request - className:', className);
@@ -69,7 +69,7 @@ router.post('/create', verifyToken, allowRoles('mainadmin'), async (req, res) =>
   }
 });
 
-router.get('/list', verifyToken, allowRoles('mainadmin'), async (req, res) => {
+router.get('/list', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
     const invoices = await Invoice.find().populate('student', 'name email').populate('teacher', 'name email').sort({ createdAt: -1 });
     res.json({ invoices });
@@ -79,7 +79,7 @@ router.get('/list', verifyToken, allowRoles('mainadmin'), async (req, res) => {
 });
 
 // Get single invoice
-router.get('/get/:id', verifyToken, allowRoles('mainadmin'), async (req, res) => {
+router.get('/get/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id).populate('student', 'name email').populate('teacher', 'name email');
     if (!invoice) return res.status(404).json({ error: 'Invoice not found.' });
@@ -90,7 +90,7 @@ router.get('/get/:id', verifyToken, allowRoles('mainadmin'), async (req, res) =>
 });
 
 // Delete invoice
-router.delete('/:id', verifyToken, allowRoles('mainadmin'), async (req, res) => {
+router.delete('/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
     console.log('DELETE /api/invoices/:id called for', req.params.id);
     const inv = await Invoice.findByIdAndDelete(req.params.id);

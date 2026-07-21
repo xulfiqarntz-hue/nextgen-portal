@@ -219,14 +219,11 @@
         <button data-tab="add-student" onclick="selectTab('add-student')">Add Student</button>
         <button data-tab="assign" onclick="selectTab('assign')">Assign Student</button>
         <button data-tab="tutors" onclick="selectTab('tutors')">Tutors <span id="tutorBadge" class="badge">0</span></button>
-        <button data-tab="tutors" onclick="selectTab('tutors')">Teachers List</button>
         <button data-tab="add-tutor" onclick="selectTab('add-tutor')">Add Tutor</button>
-        <!-- subadmins cannot add other subadmins -->
-        <button data-tab="subjects" onclick="selectTab('subjects')">Subjects List</button>
         <button data-tab="chat" onclick="selectTab('chat')">Chat <span class="badge">New</span></button>
         <button data-tab="direct-chat" onclick="selectTab('direct-chat')">Admin Direct Chat <span class="badge" style="background:#38bdf8;color:#0b1220;">Live</span></button>
+        <button data-tab="invoices" onclick="selectTab('invoices')">Invoices</button>
         <button data-tab="attendance" onclick="selectTab('attendance')">Attendance</button>
-        <!-- hide expenses from subadmins -->
       </div>
 
       <!-- Theme Toggle -->
@@ -323,14 +320,6 @@
         </div>
       </section>
 
-      <section id="subjects" class="section">
-        <header><h3>Subjects List</h3></header>
-        <div class="card">
-          <ul class="subject-list" id="subjectList"></ul>
-          <p class="note">Subject management is ready to be expanded with codes, classes, and schedules.</p>
-        </div>
-      </section>
-
       <section id="chat" class="section">
         <header><h3>Chat Viewer</h3></header>
         <div class="card">
@@ -373,7 +362,51 @@
         </div>
       </section>
 
-      
+      <section id="invoices" class="section">
+        <header><h3>Generate Invoice</h3></header>
+        <div class="card">
+          <div class="form-grid">
+            <div class="form-group"><label>Student</label><select id="invoiceStudentSelect"></select></div>
+            <div class="form-group"><label>Month</label><input id="invoiceMonth" placeholder="March 2026"></div>
+            <div class="form-group"><label>Subject 1 Name</label><input id="invSub1Name" placeholder="e.g. Mathematics"></div>
+            <div class="form-group"><label>Subject 1 Amount</label><input id="invSub1Amt" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Subject 2 Name</label><input id="invSub2Name" placeholder="e.g. Physics"></div>
+            <div class="form-group"><label>Subject 2 Amount</label><input id="invSub2Amt" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Subject 3 Name</label><input id="invSub3Name" placeholder="e.g. Chemistry"></div>
+            <div class="form-group"><label>Subject 3 Amount</label><input id="invSub3Amt" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Subject 4 Name</label><input id="invSub4Name" placeholder="e.g. Biology"></div>
+            <div class="form-group"><label>Subject 4 Amount</label><input id="invSub4Amt" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Discount</label><input id="invoiceDiscount" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Arrears / Outstanding</label><input id="invoiceArrears" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Bank Account No</label><input id="invoiceBankAccount" placeholder="00620095011441010"></div>
+            <div class="form-group"><label>Bank Name</label><input id="invoiceBankName" placeholder="Al Habib Bank"></div>
+            <div class="form-group"><label>Class</label><input id="invoiceClass" placeholder="SSC-I"></div>
+          </div>
+          <div class="inline-actions">
+            <button class="button-primary" onclick="createInvoice()">Generate Invoice</button>
+            <button class="button-secondary" onclick="clearInvoiceForm()">Clear</button>
+          </div>
+          <p id="invoiceMsg" class="note"></p>
+        </div>
+        <div class="card" style="margin-top:24px;">
+          <h3>Recent Invoices</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Month</th>
+                <th>Class</th>
+                <th>Payment</th>
+                <th>Discount</th>
+                <th>Arrears</th>
+                <th>Total</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceTableBody"></tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- ─── ATTENDANCE SECTION ─── -->
       <section id="attendance" class="section">
@@ -461,9 +494,9 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const localRole = localStorage.getItem('role');
-    let role = localRole; // will be overridden by server-verified role
+    const role = localStorage.getItem('role');
     let serverRole = null;
-    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subjects','chat','direct-chat','attendance'];
+    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','chat','direct-chat','invoices','attendance'];
 
     if (!token) {
       window.location.href = '/login.html';
@@ -509,7 +542,7 @@
       renderStudentTable();
       renderTutorTable();
       populateSelects();
-      renderSubjects();
+      loadInvoices();
     }
 
     // render tables using server-verified role
@@ -528,7 +561,7 @@
       body.innerHTML = '';
       window.students.forEach(s => {
         const tr = document.createElement('tr');
-        const canDelete = (role === 'mainadmin');
+        const canDelete = true;
         tr.innerHTML = `
           <td>${s.name}</td>
           <td>${s.email}</td>
@@ -542,7 +575,7 @@
       body.innerHTML = '';
       window.tutors.forEach(t => {
         const tr = document.createElement('tr');
-        const canDelete = (role === 'mainadmin');
+        const canDelete = true;
         tr.innerHTML = `
           <td>${t.name}</td>
           <td>${t.email}</td>
@@ -552,7 +585,7 @@
     }
 
     function populateSelects() {
-      const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect')];
+      const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect')];
       const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect')];
       studentSelects.forEach(select => {
         select.innerHTML = '<option value="">Select student</option>';
@@ -564,10 +597,7 @@
       });
     }
 
-    function renderSubjects() {
-      const subjects = ['Mathematics', 'Science', 'English', 'Computer Studies', 'History'];
-      document.getElementById('subjectList').innerHTML = subjects.map(name => `<li>${name}</li>`).join('');
-    }
+
 
     async function createStudent() {
       const name = document.getElementById('newStudentName').value.trim();
@@ -615,6 +645,119 @@
       document.getElementById('newTutorEmail').value = '';
       document.getElementById('newTutorPassword').value = '';
       document.getElementById('tutorCreateMsg').innerText = '';
+    }
+
+    async function loadInvoices() {
+      const res = await fetch('/api/invoices/list', { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      const body = document.getElementById('invoiceTableBody');
+      body.innerHTML = '';
+      if (!data.invoices) return;
+      data.invoices.forEach(inv => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${inv.student?.name || 'N/A'}</td>
+          <td>${inv.month}</td>
+          <td>${inv.className || 'N/A'}</td>
+          <td>${inv.payment}</td>
+          <td>${inv.discount}</td>
+          <td>${inv.arrears || 0}</td>
+          <td>${inv.total}</td>
+          <td><button class="button-primary" onclick="downloadInvoice('${inv._id}')">Download</button>
+              <button class="button-secondary" onclick="deleteInvoice('${inv._id}')" style="margin-left:8px;background:#ef4444;color:#fff;">Delete</button></td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    async function createInvoice() {
+      const studentId = document.getElementById('invoiceStudentSelect').value;
+      const teacherId = null;
+      const month = document.getElementById('invoiceMonth').value.trim();
+      
+      const subjects = [];
+      for (let i = 1; i <= 4; i++) {
+        const sName = document.getElementById('invSub' + i + 'Name').value.trim();
+        const sAmt = document.getElementById('invSub' + i + 'Amt').value.trim();
+        if (sName && sAmt !== '') {
+          subjects.push({ name: sName, amount: Number(sAmt) });
+        }
+      }
+
+      const discount = document.getElementById('invoiceDiscount').value.trim();
+      const arrears = document.getElementById('invoiceArrears').value.trim();
+      const bankAccountNo = document.getElementById('invoiceBankAccount').value.trim();
+      const bankName = document.getElementById('invoiceBankName').value.trim();
+      const classElement = document.getElementById('invoiceClass');
+      const className = classElement ? classElement.value.trim() : '';
+      const msgEl = document.getElementById('invoiceMsg');
+
+      msgEl.innerText = '';
+      if (!studentId || !month || subjects.length === 0) {
+        msgEl.innerText = 'Student, month, and at least one subject with amount are required.';
+        return;
+      }
+      
+      try {
+        const payload = { studentId, teacherId, month, subjects, discount, arrears, bankAccountNo, bankName, className };
+        const res = await fetch('/api/invoices/create', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (parseErr) { data.error = text; }
+        
+        if (!res.ok) {
+          msgEl.innerText = 'Invoice error: ' + (data.error || `${res.status} ${res.statusText}`);
+          return;
+        }
+
+        msgEl.innerText = data.message || 'Invoice generated successfully.';
+        clearInvoiceForm();
+        loadInvoices();
+      } catch (err) {
+        msgEl.innerText = 'Unable to send invoice request: ' + err.message;
+      }
+    }
+
+    function clearInvoiceForm() {
+      document.getElementById('invoiceStudentSelect').value = '';
+      document.getElementById('invoiceMonth').value = '';
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('invSub' + i + 'Name').value = '';
+        document.getElementById('invSub' + i + 'Amt').value = '';
+      }
+      document.getElementById('invoiceDiscount').value = '';
+      const ia = document.getElementById('invoiceArrears');
+      if (ia) ia.value = '';
+      document.getElementById('invoiceBankAccount').value = '';
+      document.getElementById('invoiceBankName').value = '';
+      const ce = document.getElementById('invoiceClass');
+      if (ce) ce.value = '';
+      document.getElementById('invoiceMsg').innerText = '';
+    }
+
+    async function deleteInvoice(id) {
+      if (!confirm('Delete this invoice?')) return;
+      try {
+        const res = await fetch('/api/invoices/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (e) { data.error = text; }
+        if (!res.ok) {
+          alert('Delete failed: ' + (data.error || `${res.status} ${res.statusText}`));
+          return;
+        }
+        alert(data.message || 'Invoice deleted.');
+        loadInvoices();
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+      }
+    }
+
+    function downloadInvoice(id) {
+      window.open('/invoice-view.html?id=' + id, '_blank');
     }
 
     function renderSubjects() {
