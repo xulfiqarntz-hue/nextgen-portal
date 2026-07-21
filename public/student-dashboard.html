@@ -1013,7 +1013,11 @@
       document.getElementById('chatTitle').innerText = teacherName;
       document.getElementById('chatSection').style.display = 'flex';
       document.getElementById('bottomBar').classList.remove('hidden');
-      document.getElementById('actionBar').classList.add('visible');
+      if (activeTeacher.isAdmin) {
+        document.getElementById('actionBar').classList.remove('visible');
+      } else {
+        document.getElementById('actionBar').classList.add('visible');
+      }
       // Close any open overlays when switching chats
       endCall();
       closeWhiteboard();

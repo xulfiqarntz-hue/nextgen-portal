@@ -1556,7 +1556,11 @@
       activeStudent = student;
       document.getElementById('chatTitle').innerText = student.name;
       document.getElementById('bottomBar').classList.remove('hidden');
-      document.getElementById('actionBar').classList.add('visible');
+      if (student.isAdmin) {
+        document.getElementById('actionBar').classList.remove('visible');
+      } else {
+        document.getElementById('actionBar').classList.add('visible');
+      }
       // Close any open overlays when switching students
       endCall();
       closeWhiteboard();
