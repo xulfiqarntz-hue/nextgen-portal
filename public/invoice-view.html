@@ -156,12 +156,18 @@
     </div>
 
     <!-- Signature Section -->
-    <div class="signature-section" style="justify-content: flex-end; position: relative;">
+    <div class="signature-section" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px;">
       
-      <!-- Company Stamp -->
-      <img src="/stamp.png" alt="Company Stamp" style="position: absolute; right: 180px; bottom: 0px; width: 140px; mix-blend-mode: multiply; opacity: 0.8; z-index: 1;" />
+      <!-- Empty space on the left to balance the signature on the right -->
+      <div style="width: 250px;"></div>
 
-      <div class="signature-line" style="width: 250px; text-align: center; position: relative; z-index: 2;">
+      <!-- Company Stamp (Center) -->
+      <div style="flex: 1; text-align: center;">
+        <img src="/stamp.png" alt="Company Stamp" style="width: 140px; mix-blend-mode: multiply; opacity: 0.8; margin-bottom: -15px;" />
+      </div>
+
+      <!-- Signature (Right) -->
+      <div class="signature-line" style="width: 250px; text-align: center;">
         <img src="/signature.png" alt="Signature" style="height: 120px; display: block; margin: 0 auto -10px auto; mix-blend-mode: multiply;" />
         <div style="border-top: 1px solid #000; padding-top: 8px;">
           <div style="font-size: 15px; font-weight: bold; color: #000;">Abdul Hadi</div>
