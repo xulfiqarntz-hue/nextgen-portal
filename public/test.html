@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Excalidraw Test</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@excalidraw/excalidraw/dist/excalidraw.production.min.js"></script>
+  <script>
+    window.EXCALIDRAW_ASSET_PATH = "https://unpkg.com/@excalidraw/excalidraw/dist/";
+  </script>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; width: 100%; }
+    #log { background: #333; color: #fff; height: 200px; overflow-y: scroll; padding: 10px; font-family: monospace; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="excalidrawContainer" style="width: 100%; height: calc(100vh - 220px);"></div>
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      document.getElementById('log').textContent += msg + '\n' + (error && error.stack ? error.stack : '') + '\n\n';
+    };
+    try {
+      const e = React.createElement;
+      const Excalidraw = window.ExcalidrawLib ? window.ExcalidrawLib.Excalidraw : window.Excalidraw;
+
+      const App = () => {
+        return e(Excalidraw);
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById('excalidrawContainer'));
+      root.render(e(App));
+      document.getElementById('log').textContent += "Rendered successfully!\n";
+    } catch(err) {
+      document.getElementById('log').textContent += err.message + '\n' + err.stack + '\n\n';
+    }
+  </script>
+</body>
+</html>

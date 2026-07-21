@@ -922,11 +922,20 @@
 
     async function loadTeachers() {
       const readState = loadReadState();
-      const res = await fetch('/api/my-teachers', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const data = await res.json();
-      teachers = data.teachers || [];
+      
+      const [teachersRes, adminsRes] = await Promise.all([
+        fetch('/api/my-teachers', { headers: { 'Authorization': 'Bearer ' + token } }),
+        fetch('/api/admins', { headers: { 'Authorization': 'Bearer ' + token } })
+      ]);
+      
+      const teachersData = await teachersRes.json();
+      const adminsData = await adminsRes.json();
+      
+      const regularTeachers = teachersData.teachers || [];
+      const adminUsers = adminsData.admins || [];
+      adminUsers.forEach(a => { a.isAdmin = true; });
+
+      teachers = [...regularTeachers, ...adminUsers];
       teachers.forEach(t => {
         t.lastMessage = 'No messages yet.';
         t.lastMessageTime = null;
@@ -959,15 +968,21 @@
 
         const avatar = document.createElement('div');
         avatar.className = 'avatar';
-        const nameParts = t.name.trim().split(/\s+/);
-        const initials = nameParts.length > 1
-          ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
-          : t.name.trim().slice(0, 2).toUpperCase();
-        avatar.innerText = initials;
+        if (t.isAdmin) {
+          avatar.innerText = '🛡️';
+          avatar.style.background = '#334155';
+        } else {
+          const nameParts = t.name.trim().split(/\s+/);
+          const initials = nameParts.length > 1
+            ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+            : t.name.trim().slice(0, 2).toUpperCase();
+          avatar.innerText = initials;
+        }
 
         const info = document.createElement('div');
         info.className = 'chat-info';
-        info.innerHTML = '<p class="chat-name">' + t.name + '</p><p class="chat-last">' + (t.lastMessage || '') + '</p>';
+        const nameHtml = t.name + (t.isAdmin ? ' <span style="font-size:0.7rem;background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">Admin</span>' : '');
+        info.innerHTML = '<p class="chat-name">' + nameHtml + '</p><p class="chat-last">' + (t.lastMessage || '') + '</p>';
 
         const meta = document.createElement('div');
         meta.style.display = 'flex';

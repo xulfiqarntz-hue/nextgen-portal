@@ -68,6 +68,15 @@ router.get('/my-teachers', verifyToken, allowRoles('student'), async (req, res) 
   }
 });
 
+router.get('/admins', verifyToken, allowRoles('student', 'teacher'), async (req, res) => {
+  try {
+    const admins = await User.find({ role: { $in: ['mainadmin', 'subadmin'] } }, 'name email role');
+    res.json({ admins });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/all-users', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
     const students = await User.find({ role: 'student' }, 'name email assignedTeachers');

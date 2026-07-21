@@ -1453,11 +1453,20 @@
 
     async function loadStudents() {
       const readState = loadReadState();
-      const res = await fetch('/api/my-students', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const data = await res.json();
-      students = data.students || [];
+      
+      const [studentsRes, adminsRes] = await Promise.all([
+        fetch('/api/my-students', { headers: { 'Authorization': 'Bearer ' + token } }),
+        fetch('/api/admins', { headers: { 'Authorization': 'Bearer ' + token } })
+      ]);
+      
+      const studentsData = await studentsRes.json();
+      const adminsData = await adminsRes.json();
+      
+      const regularStudents = studentsData.students || [];
+      const adminUsers = adminsData.admins || [];
+      adminUsers.forEach(a => { a.isAdmin = true; });
+
+      students = [...regularStudents, ...adminUsers];
       students.forEach(s => {
         s.lastMessage = 'No messages yet.';
         s.lastMessageTime = null;
@@ -1510,15 +1519,21 @@
 
         const avatar = document.createElement('div');
         avatar.className = 'avatar';
-        const nameParts = student.name.trim().split(/\s+/);
-        const initials = nameParts.length > 1
-          ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
-          : student.name.trim().slice(0, 2).toUpperCase();
-        avatar.innerText = initials;
+        if (student.isAdmin) {
+          avatar.innerText = '🛡️';
+          avatar.style.background = '#334155';
+        } else {
+          const nameParts = student.name.trim().split(/\s+/);
+          const initials = nameParts.length > 1
+            ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+            : student.name.trim().slice(0, 2).toUpperCase();
+          avatar.innerText = initials;
+        }
 
         const info = document.createElement('div');
         info.className = 'chat-info';
-        info.innerHTML = '<p class="chat-name">' + student.name + '</p><p class="chat-last">' + (student.lastMessage || 'No messages yet.') + '</p>';
+        const nameHtml = student.name + (student.isAdmin ? ' <span style="font-size:0.7rem;background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">Admin</span>' : '');
+        info.innerHTML = '<p class="chat-name">' + nameHtml + '</p><p class="chat-last">' + (student.lastMessage || 'No messages yet.') + '</p>';
 
         const meta = document.createElement('div');
         meta.style.display = 'flex';
