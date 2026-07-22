@@ -237,6 +237,7 @@
         <button data-tab="assign" onclick="selectTab('assign')">Assign Student</button>
         <button data-tab="tutors" onclick="selectTab('tutors')">Tutors <span id="tutorBadge" class="badge">0</span></button>
         <button data-tab="add-tutor" onclick="selectTab('add-tutor')">Add Tutor</button>
+        <button data-tab="subadmins" onclick="selectTab('subadmins')">Sub Admins <span id="subadminBadge" class="badge">0</span></button>
         <button data-tab="add-subadmin" onclick="selectTab('add-subadmin')">Add Sub Admin</button>
         <button data-tab="chat" onclick="selectTab('chat')">Chat <span class="badge">New</span></button>
         <button data-tab="direct-chat" onclick="selectTab('direct-chat')">Admin Direct Chat <span class="badge" style="background:#38bdf8;color:#0b1220;">Live</span></button>
@@ -336,6 +337,16 @@
             <button class="button-secondary" onclick="clearAddTutor()">Clear</button>
           </div>
           <p id="tutorCreateMsg" class="note"></p>
+        </div>
+      </section>
+
+      <section id="subadmins" class="section">
+        <header><h3>Sub Admins</h3></header>
+        <div class="card">
+          <table class="table">
+            <thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead>
+            <tbody id="subadminTableBody"></tbody>
+          </table>
         </div>
       </section>
 
@@ -628,7 +639,7 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
-    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','add-subadmin','chat','direct-chat','invoices','attendance', 'profile-settings'];
+    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subadmins','add-subadmin','chat','direct-chat','invoices','attendance', 'profile-settings'];
 
     let directChatUsers = [];
     let activeDirectChatUser = null;
@@ -694,22 +705,26 @@
       const data = await res.json();
       window.students = data.students || [];
       window.tutors = data.teachers || [];
+      window.subadmins = data.subadmins || [];
 
       const st = window.students.map(u => ({...u, role: 'student'}));
       const te = window.tutors.map(u => ({...u, role: 'teacher'}));
-      directChatUsers = [...st, ...te];
+      const sa = window.subadmins.map(u => ({...u, role: 'subadmin'}));
+      directChatUsers = [...st, ...te, ...sa];
       renderDirectChatList();
 
       document.getElementById('studentCount').innerText = window.students.length;
       document.getElementById('tutorCount').innerText = window.tutors.length;
       document.getElementById('studentBadge').innerText = window.students.length;
       document.getElementById('tutorBadge').innerText = window.tutors.length;
+      if(document.getElementById('subadminBadge')) document.getElementById('subadminBadge').innerText = window.subadmins.length;
 
       const assignmentCount = window.students.reduce((sum, student) => sum + (student.assignedTeachers?.length || 0), 0);
       document.getElementById('assignmentCount').innerText = assignmentCount;
 
       renderStudentTable();
       renderTutorTable();
+      renderSubadminTable();
       populateSelects();
       loadInvoices();
     }
@@ -753,7 +768,19 @@
       });
     }
 
-    
+    function renderSubadminTable() {
+      const body = document.getElementById('subadminTableBody');
+      if(!body) return;
+      body.innerHTML = '';
+      window.subadmins.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.name}</td>
+          <td>${s.email}</td>
+          <td><button class="button-secondary" onclick="deleteUser('${s._id}', '${s.name}')">Delete</button></td>`;
+        body.appendChild(tr);
+      });
+    }
 
     function populateSelects() {
       const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect')];

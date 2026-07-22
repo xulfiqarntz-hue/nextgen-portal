@@ -44,7 +44,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-module.exports = router;
 
 // Return current user info
 router.get('/me', verifyToken, async (req, res) => {
@@ -90,3 +89,5 @@ router.put('/profile', verifyToken, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+module.exports = router;
