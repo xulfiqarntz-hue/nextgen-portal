@@ -284,31 +284,33 @@
     function downloadPDF() {
       const element = document.getElementById('invoice');
       
-      // Temporarily override styles in the real DOM to prevent html2canvas coordinate offset bugs
-      const originalMargin = element.style.margin;
-      const originalMaxWidth = element.style.maxWidth;
-      const originalWidth = element.style.width;
-      
-      // Align to left (x=0) and fix width to perfectly match A4 proportions
-      element.style.margin = '0';
-      element.style.maxWidth = 'none';
-      element.style.width = '800px';
-
       const opt = {
         margin: 10,
         filename: 'invoice-' + (window.invoiceData?.month || 'invoice').replace(/\s+/g, '-') + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        // windowWidth is REQUIRED to prevent html2canvas from cropping the right side on narrow screens
-        html2canvas: { scale: 2, windowWidth: 800, scrollX: 0, scrollY: 0 },
+        html2canvas: { 
+          scale: 2, 
+          windowWidth: 800, 
+          width: 800,
+          x: 0, 
+          y: 0,
+          scrollX: 0, 
+          scrollY: 0,
+          onclone: function(clonedDoc) {
+            // Remove body padding so the element is exactly at 0,0
+            clonedDoc.body.style.padding = '0';
+            const el = clonedDoc.getElementById('invoice');
+            if (el) {
+              el.style.margin = '0';
+              el.style.maxWidth = 'none';
+              el.style.width = '800px';
+            }
+          }
+        },
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
 
-      html2pdf().set(opt).from(element).save().then(() => {
-        // Restore original layout after PDF generation is triggered
-        element.style.margin = originalMargin;
-        element.style.maxWidth = originalMaxWidth;
-        element.style.width = originalWidth;
-      });
+      html2pdf().set(opt).from(element).save();
     }
 
     // Load invoice on page load
