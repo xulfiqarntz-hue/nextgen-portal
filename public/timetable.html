@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Academy Timetable</title>
+  <style>
+    :root { --ink:#1f2a44; --blue:#276ef1; --mint:#eafaf4; --line:#dbe2ee; --muted:#64748b; --danger:#c93542; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,Segoe UI,Arial,sans-serif; color:var(--ink); background:#f5f7fb; }
+    header { background:linear-gradient(120deg,#19356f,#276ef1); color:#fff; padding:28px max(20px,calc((100% - 1180px)/2)); }
+    header h1 { margin:0 0 6px; font-size:28px; } header p { margin:0; opacity:.9; }
+    main { max-width:1180px; margin:24px auto; padding:0 20px 42px; }
+    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:18px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:0 2px 12px #1f2a4409; }
+    .setup { grid-column:span 4; } .booking { grid-column:span 8; } .schedule { grid-column:span 12; }
+    h2 { font-size:18px; margin:0 0 15px; } h3 { font-size:14px; margin:18px 0 8px; color:var(--muted); }
+    label { display:block; font-size:13px; font-weight:650; margin:11px 0 5px; }
+    input, select, button { font:inherit; }
+    input, select { width:100%; border:1px solid #c7d1e0; border-radius:8px; padding:10px; color:var(--ink); background:#fff; }
+    button { border:0; border-radius:8px; padding:10px 13px; cursor:pointer; background:var(--blue); color:#fff; font-weight:650; }
+    button:hover { filter:brightness(.94); } button.secondary { background:#e9eef8; color:#254071; } button.danger { color:var(--danger); background:#fff0f1; }
+    .row { display:flex; align-items:end; gap:9px; } .row > * { flex:1; } .row button { flex:0 0 auto; }
+    .days { display:flex; flex-wrap:wrap; gap:8px; } .days label { display:flex; gap:5px; align-items:center; margin:0; background:#f4f7fb; padding:7px 8px; border-radius:7px; font-weight:500; }
+    .days input { width:auto; }
+    .students { max-height:128px; overflow:auto; border:1px solid #c7d1e0; border-radius:8px; padding:7px; }
+    .students label { display:flex; align-items:center; gap:8px; margin:5px 2px; font-weight:500; } .students input { width:auto; }
+    .help, .empty { color:var(--muted); font-size:13px; line-height:1.45; } .notice { display:none; margin:12px 0 0; padding:10px; border-radius:8px; background:#fff5dd; color:#805400; font-size:13px; }
+    .chips { display:flex; flex-wrap:wrap; gap:7px; } .chip { background:var(--mint); color:#17634e; padding:5px 8px; border-radius:20px; font-size:12px; }
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:15px; } .toolbar select { width:220px; }
+    .table-wrap { overflow:auto; } table { width:100%; border-collapse:separate; border-spacing:0; min-width:730px; font-size:13px; }
+    th { background:#eef3fc; color:#415373; text-align:left; font-size:12px; padding:10px; } td { padding:10px; border-bottom:1px solid #edf0f5; vertical-align:top; } .class-title { font-weight:700; } .small { color:var(--muted); font-size:12px; margin-top:3px; }
+    .slot { border-left:4px solid var(--blue); background:#f7f9fe; } .free { color:#23815a; font-weight:650; }.conflict {color:var(--danger); font-weight:650;}
+    .actions { display:flex; gap:7px; } .actions button { padding:5px 8px; font-size:12px; }
+    @media (max-width:800px) { .setup,.booking {grid-column:span 12;} }
+    @media print { body {background:#fff;} header,.no-print,.setup,.booking {display:none!important;} main{max-width:none;margin:0;padding:0;} .schedule{border:0;box-shadow:none;padding:0;} .print-title{display:block!important;} }
+    .print-title {display:none;}
+  </style>
+</head>
+<body>
+  <header><h1>Academy Timetable</h1><p>Choose any class start time and duration between 3:00 PM and midnight.</p></header>
+  <main>
+    <section class="grid">
+      <div class="card setup">
+        <h2>People</h2>
+        <h3>Add teacher</h3>
+        <div class="row"><input id="teacherName" placeholder="Teacher name"><button onclick="addPerson('teacher')">Add</button></div>
+        <h3>Add student</h3>
+        <div class="row"><input id="studentName" placeholder="Student name"><button onclick="addPerson('student')">Add</button></div>
+        <h3>Your people</h3>
+        <div id="people" class="chips"><span class="empty">No teachers or students added yet.</span></div>
+      </div>
+
+      <div class="card booking">
+        <h2>Create a class</h2>
+        <div class="row"><div><label>Subject / class name</label><input id="subject" placeholder="For example: Mathematics"></div><div><label>Teacher</label><select id="teacher"></select></div></div>
+        <label>Students in this class</label><div id="studentList" class="students"><span class="empty">Add students first.</span></div>
+        <label>Class days</label><div class="days" id="dayList"></div>
+        <div class="row"><div><label>Start time</label><select id="time"></select></div><div><label>Class duration</label><select id="duration"></select></div><div class="help">Choose “Find automatically” to use the first free block for the teacher and all selected students.</div></div>
+        <div class="row" style="margin-top:15px"><button onclick="saveClass()">Add class to timetable</button><button class="secondary" onclick="suggestSlot()">Find a free slot</button></div>
+        <div id="notice" class="notice"></div>
+      </div>
+
+      <div class="card schedule">
+        <h2 class="print-title">Academy Timetable</h2>
+        <h2>Timetable</h2>
+        <div class="toolbar no-print"><select id="viewType" onchange="render()"><option value="all">All classes</option><option value="teacher">A teacher's timetable</option><option value="student">A student's timetable</option></select><select id="viewPerson" onchange="render()"></select><button onclick="window.print()">Print this timetable</button><button class="secondary" onclick="exportData()">Download backup</button><label class="secondary" style="padding:10px 13px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:650">Restore backup<input type="file" accept="application/json" onchange="importData(event)" hidden></label></div>
+        <div id="availability" class="help no-print"></div>
+        <div class="table-wrap"><table><thead><tr><th>Day</th><th>Time</th><th>Class</th><th>Teacher</th><th>Students</th><th class="no-print"></th></tr></thead><tbody id="classes"></tbody></table></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const TIMES=['3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM','9:30 PM','10:00 PM','10:30 PM','11:00 PM','11:30 PM'];
+    const DURATIONS=[30,40,60];
+    let data=JSON.parse(localStorage.getItem('academyTimetable')||'{"teachers":[],"students":[],"classes":[]}');
+    const $=id=>document.getElementById(id); const id=()=>crypto.randomUUID ? crypto.randomUUID() : Date.now()+Math.random();
+    function persist(){localStorage.setItem('academyTimetable',JSON.stringify(data));}
+    function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+    function init(){
+      $('dayList').innerHTML=DAYS.map(d=>`<label><input type="checkbox" value="${d}">${d.slice(0,3)}</label>`).join('');
+      $('time').innerHTML='<option value="auto">Find automatically</option>'+TIMES.map(t=>`<option>${t}</option>`).join('');
+      $('duration').innerHTML='<option value="30">30 minutes</option><option value="40">40 minutes</option><option value="60" selected>1 hour</option>'; render();
+    }
+    function addPerson(type){const el=$(type+'Name'),name=el.value.trim(); if(!name)return; if(data[type+'s'].some(x=>x.name.toLowerCase()===name.toLowerCase()))return message('That person is already listed.'); data[type+'s'].push({id:id(),name});el.value='';persist();render();}
+    function deletePerson(type,personId){if(data.classes.some(c=>c.teacher===personId||c.students.includes(personId)))return message('Remove or change this person’s classes before deleting them.'); data[type+'s']=data[type+'s'].filter(x=>x.id!==personId);persist();render();}
+    function getSelectedDays(){return [...document.querySelectorAll('#dayList input:checked')].map(x=>x.value);}
+    function getSelectedStudents(){return [...document.querySelectorAll('#studentList input:checked')].map(x=>x.value);}
+    function person(type,pid){return data[type+'s'].find(x=>x.id===pid)?.name||'Unknown';}
+    function slotIndex(time){return TIMES.indexOf(time);}
+    function startMinutes(time){return 15*60+slotIndex(time)*30;}
+    function durationOf(c){const value=Number(c.duration||1);return value<10?value*60:value;}
+    function formatMinutes(minutes){if(minutes===24*60)return '12:00 AM';const hour=Math.floor(minutes/60),minute=minutes%60,ampm=hour>=12?'PM':'AM',display=hour%12||12;return `${display}:${String(minute).padStart(2,'0')} ${ampm}`;}
+    function endTime(time,duration){return formatMinutes(startMinutes(time)+Number(duration));}
+    function fitsBeforeMidnight(time,duration){return startMinutes(time)+Number(duration)<=24*60;}
+    function overlaps(c,time,duration){const a=startMinutes(c.time), b=a+durationOf(c), x=startMinutes(time), y=x+Number(duration);return x<b&&y>a;}
+    function conflicts(teacher,students,days,time,duration,ignore){return data.classes.filter(c=>c.id!==ignore&&c.days.some(d=>days.includes(d))&&overlaps(c,time,duration)&&(c.teacher===teacher||c.students.some(s=>students.includes(s))));}
+    function suggestSlot(show=true){const teacher=$('teacher').value, students=getSelectedStudents(), days=getSelectedDays(),duration=Number($('duration').value); if(!teacher||!students.length||!days.length){message('Select a teacher, at least one student, and one class day first.');return null;} const time=TIMES.find(t=>fitsBeforeMidnight(t,duration)&&!conflicts(teacher,students,days,t,duration).length); if(time){$('time').value=time;if(show)message(`First common free block: ${time}–${endTime(time,duration)}.`);return time;} message(`No ${duration}-minute block is free on all of those days. Try another duration or day.`);return null;}
+    function saveClass(){const subject=$('subject').value.trim(),teacher=$('teacher').value,students=getSelectedStudents(),days=getSelectedDays(),duration=Number($('duration').value);let time=$('time').value;if(!subject||!teacher||!students.length||!days.length){message('Add a subject, teacher, at least one student, and class day.');return;}if(time==='auto'){time=suggestSlot(false);if(!time)return;}if(!fitsBeforeMidnight(time,duration)){message('This class would finish after midnight. Choose an earlier time or a shorter duration.');return;} const existing=conflicts(teacher,students,days,time,duration);if(existing.length){message('This overlaps an existing class for the teacher or a student. Choose another time, duration, or day.');return;}data.classes.push({id:id(),subject,teacher,students,days,time,duration});$('subject').value='';document.querySelectorAll('#studentList input,#dayList input').forEach(x=>x.checked=false);$('time').value='auto';persist();render();message('Class added — the timetable is updated.');}
+    function message(text){const n=$('notice');n.textContent=text;n.style.display='block';clearTimeout(window.noticeTimer);window.noticeTimer=setTimeout(()=>n.style.display='none',5000);}
+    function removeClass(cid){if(confirm('Remove this class?')){data.classes=data.classes.filter(c=>c.id!==cid);persist();render();}}
+    function render(){
+      $('people').innerHTML=[...data.teachers.map(p=>`<span class="chip">Teacher: ${esc(p.name)} <button class="danger" onclick="deletePerson('teacher','${p.id}')" title="Remove" style="padding:0 3px;background:none">×</button></span>`),...data.students.map(p=>`<span class="chip">Student: ${esc(p.name)} <button class="danger" onclick="deletePerson('student','${p.id}')" title="Remove" style="padding:0 3px;background:none">×</button></span>`)].join('')||'<span class="empty">No teachers or students added yet.</span>';
+      $('teacher').innerHTML='<option value="">Select teacher</option>'+data.teachers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+      $('studentList').innerHTML=data.students.map(p=>`<label><input type="checkbox" value="${p.id}"> ${esc(p.name)}</label>`).join('')||'<span class="empty">Add students first.</span>';
+      const kind=$('viewType').value, pv=$('viewPerson').value;let options='<option value="">Select a person</option>'; if(kind==='teacher')options+=data.teachers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');if(kind==='student')options+=data.students.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');$('viewPerson').innerHTML=kind==='all'?'<option>All people</option>':options;$('viewPerson').style.display=kind==='all'?'none':'';if(pv&&[...$('viewPerson').options].some(o=>o.value===pv))$('viewPerson').value=pv;
+      const current=$('viewPerson').value;let shown=data.classes.filter(c=>kind==='all'||!current||(kind==='teacher'?c.teacher===current:c.students.includes(current)));shown=[...shown].sort((a,b)=>DAYS.indexOf(a.days[0])-DAYS.indexOf(b.days[0])||slotIndex(a.time)-slotIndex(b.time));
+      $('classes').innerHTML=shown.map(c=>`<tr><td>${c.days.map(esc).join(', ')}</td><td class="slot">${c.time}–${endTime(c.time,durationOf(c))}<div class="small">${durationOf(c)===60?'1 hour':durationOf(c)+' minutes'}</div></td><td><span class="class-title">${esc(c.subject)}</span></td><td>${esc(person('teacher',c.teacher))}</td><td>${c.students.map(s=>esc(person('student',s))).join(', ')}</td><td class="no-print"><div class="actions"><button class="danger" onclick="removeClass('${c.id}')">Remove</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="empty">No classes to show.</td></tr>';
+      if(kind!=='all'&&current){const name=person(kind,current);let free=[];DAYS.forEach(d=>TIMES.forEach(t=>{if(!shown.some(c=>c.days.includes(d)&&overlaps(c,t,30)))free.push(`${d} ${t}`)}));$('availability').innerHTML=`<strong>${esc(name)}</strong> is free in ${free.length} half-hour start slots. Check the timetable above for booked times.`;}else $('availability').textContent='Choose a teacher or student to see their personal timetable and free-slot summary.';
+    }
+    function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='academy-timetable-backup.json';a.click();URL.revokeObjectURL(a.href);}
+    function importData(e){const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const incoming=JSON.parse(reader.result);if(!Array.isArray(incoming.teachers)||!Array.isArray(incoming.students)||!Array.isArray(incoming.classes))throw Error();data=incoming;persist();render();message('Backup restored.');}catch{message('That file is not a valid timetable backup.');}};reader.readAsText(f);}
+    init();
+  </script>
+</body>
+</html>
