@@ -9,6 +9,19 @@ router.post('/send', verifyToken, async (req, res) => {
   try {
     let { receiverId, text } = req.body;
 
+    // Temporarily preserve class links and general URLs to prevent them from being blocked
+    const urls = [];
+    // Matches http/https links or common class link domains (zoom, meet, teams)
+    const urlRegex = /(https?:\/\/[^\s]+|(?:[a-zA-Z0-9-]+\.)?(?:zoom\.us|meet\.google\.com|teams\.microsoft\.com)[^\s]*)/gi;
+    text = text.replace(urlRegex, (match, p1, offset, string) => {
+      // If preceded by '@', it might be an email address domain (e.g., test@zoom.us), so don't preserve it
+      if (offset > 0 && string[offset - 1] === '@') {
+        return match;
+      }
+      urls.push(match);
+      return `__URL_${urls.length - 1}__`;
+    });
+
     // Filter email addresses
     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
     text = text.replace(emailRegex, '[CONTACT INFO REMOVED]');
@@ -16,6 +29,11 @@ router.post('/send', verifyToken, async (req, res) => {
     // Filter phone numbers (basic detection for sequences of 7+ digits with optional separators)
     const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
     text = text.replace(phoneRegex, '[CONTACT INFO REMOVED]');
+
+    // Restore URLs
+    urls.forEach((url, i) => {
+      text = text.replace(`__URL_${i}__`, url);
+    });
 
     const newMessage = new Message({
       sender: req.user.id,
