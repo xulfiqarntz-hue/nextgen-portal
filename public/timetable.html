@@ -72,7 +72,7 @@
   </main>
   <script>
     const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    const TIMES=['3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM','9:30 PM','10:00 PM','10:30 PM','11:00 PM','11:30 PM'];
+    const TIMES=['3:00 PM','3:10 PM','3:20 PM','3:30 PM','3:40 PM','3:50 PM','4:00 PM','4:10 PM','4:20 PM','4:30 PM','4:40 PM','4:50 PM','5:00 PM','5:10 PM','5:20 PM','5:30 PM','5:40 PM','5:50 PM','6:00 PM','6:10 PM','6:20 PM','6:30 PM','6:40 PM','6:50 PM','7:00 PM','7:10 PM','7:20 PM','7:30 PM','7:40 PM','7:50 PM','8:00 PM','8:10 PM','8:20 PM','8:30 PM','8:40 PM','8:50 PM','9:00 PM','9:10 PM','9:20 PM','9:30 PM','9:40 PM','9:50 PM','10:00 PM','10:10 PM','10:20 PM','10:30 PM','10:40 PM','10:50 PM','11:00 PM','11:10 PM','11:20 PM','11:30 PM','11:40 PM','11:50 PM'];
     const DURATIONS=[30,40,60];
     let data=JSON.parse(localStorage.getItem('academyTimetable')||'{"teachers":[],"students":[],"classes":[]}');
     const $=id=>document.getElementById(id); const id=()=>crypto.randomUUID ? crypto.randomUUID() : Date.now()+Math.random();
@@ -89,7 +89,7 @@
     function getSelectedStudents(){return [...document.querySelectorAll('#studentList input:checked')].map(x=>x.value);}
     function person(type,pid){return data[type+'s'].find(x=>x.id===pid)?.name||'Unknown';}
     function slotIndex(time){return TIMES.indexOf(time);}
-    function startMinutes(time){return 15*60+slotIndex(time)*30;}
+    function startMinutes(time){return 15*60+slotIndex(time)*10;}
     function durationOf(c){const value=Number(c.duration||1);return value<10?value*60:value;}
     function formatMinutes(minutes){if(minutes===24*60)return '12:00 AM';const hour=Math.floor(minutes/60),minute=minutes%60,ampm=hour>=12?'PM':'AM',display=hour%12||12;return `${display}:${String(minute).padStart(2,'0')} ${ampm}`;}
     function endTime(time,duration){return formatMinutes(startMinutes(time)+Number(duration));}
@@ -107,7 +107,7 @@
       const kind=$('viewType').value, pv=$('viewPerson').value;let options='<option value="">Select a person</option>'; if(kind==='teacher')options+=data.teachers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');if(kind==='student')options+=data.students.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');$('viewPerson').innerHTML=kind==='all'?'<option>All people</option>':options;$('viewPerson').style.display=kind==='all'?'none':'';if(pv&&[...$('viewPerson').options].some(o=>o.value===pv))$('viewPerson').value=pv;
       const current=$('viewPerson').value;let shown=data.classes.filter(c=>kind==='all'||!current||(kind==='teacher'?c.teacher===current:c.students.includes(current)));shown=[...shown].sort((a,b)=>DAYS.indexOf(a.days[0])-DAYS.indexOf(b.days[0])||slotIndex(a.time)-slotIndex(b.time));
       $('classes').innerHTML=shown.map(c=>`<tr><td>${c.days.map(esc).join(', ')}</td><td class="slot">${c.time}–${endTime(c.time,durationOf(c))}<div class="small">${durationOf(c)===60?'1 hour':durationOf(c)+' minutes'}</div></td><td><span class="class-title">${esc(c.subject)}</span></td><td>${esc(person('teacher',c.teacher))}</td><td>${c.students.map(s=>esc(person('student',s))).join(', ')}</td><td class="no-print"><div class="actions"><button class="danger" onclick="removeClass('${c.id}')">Remove</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="empty">No classes to show.</td></tr>';
-      if(kind!=='all'&&current){const name=person(kind,current);let free=[];DAYS.forEach(d=>TIMES.forEach(t=>{if(!shown.some(c=>c.days.includes(d)&&overlaps(c,t,30)))free.push(`${d} ${t}`)}));$('availability').innerHTML=`<strong>${esc(name)}</strong> is free in ${free.length} half-hour start slots. Check the timetable above for booked times.`;}else $('availability').textContent='Choose a teacher or student to see their personal timetable and free-slot summary.';
+      if(kind!=='all'&&current){const name=person(kind,current);let free=[];DAYS.forEach(d=>TIMES.forEach(t=>{if(!shown.some(c=>c.days.includes(d)&&overlaps(c,t,10)))free.push(`${d} ${t}`)}));$('availability').innerHTML=`<strong>${esc(name)}</strong> is free in ${free.length} 10-minute start slots. Check the timetable above for booked times.`;}else $('availability').textContent='Choose a teacher or student to see their personal timetable and free-slot summary.';
     }
     function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='academy-timetable-backup.json';a.click();URL.revokeObjectURL(a.href);}
     function importData(e){const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const incoming=JSON.parse(reader.result);if(!Array.isArray(incoming.teachers)||!Array.isArray(incoming.students)||!Array.isArray(incoming.classes))throw Error();data=incoming;persist();render();message('Backup restored.');}catch{message('That file is not a valid timetable backup.');}};reader.readAsText(f);}
