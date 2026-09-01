@@ -287,7 +287,20 @@
         margin: 10,
         filename: 'invoice-' + (window.invoiceData?.month || 'invoice').replace(/\s+/g, '-') + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, windowWidth: 900, scrollX: 0, scrollY: 0 },
+        html2canvas: { 
+          scale: 2, 
+          windowWidth: 900, 
+          scrollX: 0, 
+          scrollY: 0,
+          onclone: function(clonedDoc) {
+            const el = clonedDoc.getElementById('invoice');
+            if (el) {
+              el.style.margin = '0';
+              el.style.width = '900px';
+              el.style.maxWidth = 'none';
+            }
+          }
+        },
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
 
