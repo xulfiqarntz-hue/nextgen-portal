@@ -289,16 +289,17 @@
       const originalMaxWidth = element.style.maxWidth;
       const originalWidth = element.style.width;
       
-      // Align to left (x=0) and fix width to perfectly match A4 proportions (790px is ~190mm at 96dpi)
+      // Align to left (x=0) and fix width to perfectly match A4 proportions
       element.style.margin = '0';
       element.style.maxWidth = 'none';
-      element.style.width = '790px';
+      element.style.width = '800px';
 
       const opt = {
         margin: 10,
         filename: 'invoice-' + (window.invoiceData?.month || 'invoice').replace(/\s+/g, '-') + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        // windowWidth is REQUIRED to prevent html2canvas from cropping the right side on narrow screens
+        html2canvas: { scale: 2, windowWidth: 800, scrollX: 0, scrollY: 0 },
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
 
