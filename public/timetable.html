@@ -64,7 +64,7 @@
       <div class="card schedule">
         <h2 class="print-title">Academy Timetable</h2>
         <h2>Timetable</h2>
-        <div class="toolbar no-print"><select id="viewType" onchange="render()"><option value="all">All classes</option><option value="teacher">A teacher's timetable</option><option value="student">A student's timetable</option></select><select id="viewPerson" onchange="render()"></select><button onclick="window.print()">Print this timetable</button><button class="secondary" onclick="exportData()">Download backup</button><label class="secondary" style="padding:10px 13px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:650">Restore backup<input type="file" accept="application/json" onchange="importData(event)" hidden></label></div>
+        <div class="toolbar no-print"><select id="viewType" onchange="render()"><option value="all">All classes</option><option value="teacher">A teacher's timetable</option><option value="student">A student's timetable</option></select><select id="viewPerson" onchange="render()"></select><button onclick="window.print()">Print this timetable</button><button class="secondary" onclick="exportData()">Download CSV</button><label class="secondary" style="padding:10px 13px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:650">Restore backup<input type="file" accept="application/json" onchange="importData(event)" hidden></label></div>
         <div id="availability" class="help no-print"></div>
         <div class="table-wrap"><table><thead><tr><th>Day</th><th>Time</th><th>Class</th><th>Teacher</th><th>Students</th><th class="no-print"></th></tr></thead><tbody id="classes"></tbody></table></div>
       </div>
@@ -119,7 +119,21 @@
       $('classes').innerHTML=shown.map(c=>`<tr><td>${c.days.map(esc).join(', ')}</td><td class="slot">${c.time}–${endTime(c.time,durationOf(c))}<div class="small">${durationOf(c)===60?'1 hour':durationOf(c)+' minutes'}</div></td><td><span class="class-title">${esc(c.subject)}</span></td><td>${esc(person('teacher',c.teacher))}</td><td>${c.students.map(s=>esc(person('student',s))).join(', ')}</td><td class="no-print"><div class="actions"><button class="danger" onclick="removeClass('${c.id}')">Remove</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="empty">No classes to show.</td></tr>';
       if(kind!=='all'&&current){const name=person(kind,current);let free=[];DAYS.forEach(d=>TIMES.forEach(t=>{if(!shown.some(c=>c.days.includes(d)&&overlaps(c,t,10)))free.push(`${d} ${t}`)}));$('availability').innerHTML=`<strong>${esc(name)}</strong> is free in ${free.length} 10-minute start slots. Check the timetable above for booked times.`;}else $('availability').textContent='Choose a teacher or student to see their personal timetable and free-slot summary.';
     }
-    function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='academy-timetable-backup.json';a.click();URL.revokeObjectURL(a.href);}
+    function exportData(){
+      const kind=$('viewType').value, pv=$('viewPerson').value;
+      let shown=data.classes.filter(c=>kind==='all'||!pv||(kind==='teacher'?c.teacher===pv:c.students.includes(pv)));
+      shown=[...shown].sort((a,b)=>DAYS.indexOf(a.days[0])-DAYS.indexOf(b.days[0])||slotIndex(a.time)-slotIndex(b.time));
+      let csv="Day,Time,Duration,Subject,Teacher,Students\n";
+      shown.forEach(c=>{
+        const d=c.days.join(' & '), t=`${c.time} - ${endTime(c.time,durationOf(c))}`, dur=durationOf(c)===60?'1 hour':durationOf(c)+' mins', s=c.subject.replace(/,/g,' '), tchr=person('teacher',c.teacher).replace(/,/g,' '), st=c.students.map(x=>person('student',x)).join(' & ').replace(/,/g,' ');
+        csv+=`"${d}","${t}","${dur}","${s}","${tchr}","${st}"\n`;
+      });
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download=(kind!=='all'&&pv?person(kind,pv).replace(/\s+/g,'_')+'_timetable':'academy_timetable')+'.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
     function importData(e){const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const incoming=JSON.parse(reader.result);if(!Array.isArray(incoming.teachers)||!Array.isArray(incoming.students)||!Array.isArray(incoming.classes))throw Error();data=incoming;persist();render();message('Backup restored.');}catch{message('That file is not a valid timetable backup.');}};reader.readAsText(f);}
     async function loadData() {
       try {
