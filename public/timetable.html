@@ -122,12 +122,25 @@
     function exportData(){
       const kind=$('viewType').value, pv=$('viewPerson').value;
       let shown=data.classes.filter(c=>kind==='all'||!pv||(kind==='teacher'?c.teacher===pv:c.students.includes(pv)));
-      shown=[...shown].sort((a,b)=>DAYS.indexOf(a.days[0])-DAYS.indexOf(b.days[0])||slotIndex(a.time)-slotIndex(b.time));
-      let csv="Day,Time,Duration,Subject,Teacher,Students\n";
-      shown.forEach(c=>{
-        const d=c.days.join(' & '), t=`${c.time} - ${endTime(c.time,durationOf(c))}`, dur=durationOf(c)===60?'1 hour':durationOf(c)+' mins', s=c.subject.replace(/,/g,' '), tchr=person('teacher',c.teacher).replace(/,/g,' '), st=c.students.map(x=>person('student',x)).join(' & ').replace(/,/g,' ');
-        csv+=`"${d}","${t}","${dur}","${s}","${tchr}","${st}"\n`;
+      
+      let csv = "Time," + DAYS.join(",") + "\n";
+      TIMES.forEach(t => {
+        let row = [t];
+        DAYS.forEach(d => {
+          let ongoing = shown.filter(c => c.days.includes(d) && overlaps(c, t, 10));
+          if(ongoing.length > 0) {
+            let cellText = ongoing.map(c => `${c.subject} (${c.time}-${endTime(c.time, durationOf(c))})\nT: ${person('teacher', c.teacher)}\nS: ${c.students.map(s=>person('student',s)).join(', ')}`).join('\n---\n').replace(/"/g, '""');
+            row.push(`"${cellText}"`);
+          } else {
+            row.push("");
+          }
+        });
+        if (row.slice(1).some(cell => cell !== "")) {
+          csv += row.join(",") + "\n";
+        }
       });
+      if(csv === "Time," + DAYS.join(",") + "\n") csv += "No classes found\n";
+
       const a=document.createElement('a');
       a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
       a.download=(kind!=='all'&&pv?person(kind,pv).replace(/\s+/g,'_')+'_timetable':'academy_timetable')+'.csv';
