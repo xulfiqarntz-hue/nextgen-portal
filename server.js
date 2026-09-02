@@ -9,6 +9,7 @@ const assignRoutes = require('./routes/assign');
 const chatRoutes = require('./routes/chat');
 const invoiceRoutes = require('./routes/invoice');
 const attendanceRoutes = require('./routes/attendance');
+const timetableRoutes = require('./routes/timetable');
 
 const app = express();
 const server = http.createServer(app);
@@ -30,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/timetable', timetableRoutes);
 app.use('/api', assignRoutes);
 
 // ── Shared Whiteboard via Socket.IO ──

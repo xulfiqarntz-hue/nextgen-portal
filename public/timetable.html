@@ -74,9 +74,19 @@
     const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const TIMES=['3:00 PM','3:10 PM','3:20 PM','3:30 PM','3:40 PM','3:50 PM','4:00 PM','4:10 PM','4:20 PM','4:30 PM','4:40 PM','4:50 PM','5:00 PM','5:10 PM','5:20 PM','5:30 PM','5:40 PM','5:50 PM','6:00 PM','6:10 PM','6:20 PM','6:30 PM','6:40 PM','6:50 PM','7:00 PM','7:10 PM','7:20 PM','7:30 PM','7:40 PM','7:50 PM','8:00 PM','8:10 PM','8:20 PM','8:30 PM','8:40 PM','8:50 PM','9:00 PM','9:10 PM','9:20 PM','9:30 PM','9:40 PM','9:50 PM','10:00 PM','10:10 PM','10:20 PM','10:30 PM','10:40 PM','10:50 PM','11:00 PM','11:10 PM','11:20 PM','11:30 PM','11:40 PM','11:50 PM'];
     const DURATIONS=[30,40,60];
-    let data=JSON.parse(localStorage.getItem('academyTimetable')||'{"teachers":[],"students":[],"classes":[]}');
+    let data={"teachers":[],"students":[],"classes":[]};
+    const token=localStorage.getItem('token');
+    if(!token) window.location.href='/login.html';
     const $=id=>document.getElementById(id); const id=()=>crypto.randomUUID ? crypto.randomUUID() : Date.now()+Math.random();
-    function persist(){localStorage.setItem('academyTimetable',JSON.stringify(data));}
+    async function persist(){
+      try {
+        await fetch('/api/timetable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify(data)
+        });
+      } catch(e) { console.error(e); }
+    }
     function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
     function init(){
       $('dayList').innerHTML=DAYS.map(d=>`<label><input type="checkbox" value="${d}">${d.slice(0,3)}</label>`).join('');
@@ -111,7 +121,17 @@
     }
     function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='academy-timetable-backup.json';a.click();URL.revokeObjectURL(a.href);}
     function importData(e){const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const incoming=JSON.parse(reader.result);if(!Array.isArray(incoming.teachers)||!Array.isArray(incoming.students)||!Array.isArray(incoming.classes))throw Error();data=incoming;persist();render();message('Backup restored.');}catch{message('That file is not a valid timetable backup.');}};reader.readAsText(f);}
-    init();
+    async function loadData() {
+      try {
+        const res = await fetch('/api/timetable', { headers: { 'Authorization': 'Bearer ' + token } });
+        if(res.ok) {
+          const serverData = await res.json();
+          if(serverData && Array.isArray(serverData.classes)) data = serverData;
+        }
+      } catch(e) { console.error(e); }
+      init();
+    }
+    loadData();
   </script>
 </body>
 </html>
