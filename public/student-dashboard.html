@@ -1420,7 +1420,7 @@
             ${m.text ? m.text.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>') : ''}
           `;
         } else {
-          bubble.innerText = m.text;
+          bubble.innerText = m.text || '';
           bubble.innerHTML = bubble.innerHTML.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>');
         }
 

@@ -1946,7 +1946,7 @@
       student.lastMessage = last.text;
       student.lastMessageTime = last.createdAt;
       student.lastSender = last.sender;
-      student.pinned = last.text.toLowerCase().includes('important') || student.pinned;
+      student.pinned = (last.text || '').toLowerCase().includes('important') || student.pinned;
     }
 
     function renderMessages(forceScroll) {
@@ -1974,7 +1974,7 @@
             ${msg.text ? msg.text.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>') : ''}
           `;
         } else {
-          bubble.innerText = msg.text;
+          bubble.innerText = msg.text || '';
           bubble.innerHTML = bubble.innerHTML.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>');
         }
 
@@ -2064,7 +2064,7 @@
       const lastReadAtMs = student.lastReadAt ? new Date(student.lastReadAt).getTime() : 0;
       const lastCreatedMs = new Date(last.createdAt).getTime();
       student.unread = last.sender === student._id && (lastReadAtMs === 0 || lastCreatedMs > lastReadAtMs);
-      student.pinned = last.text.toLowerCase().includes('important') || student.pinned;
+      student.pinned = (last.text || '').toLowerCase().includes('important') || student.pinned;
     }
 
     function startStudentPolling() {
