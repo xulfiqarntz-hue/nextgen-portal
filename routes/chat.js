@@ -2,12 +2,45 @@ console.log('Chat route loaded');
 const express = require('express');
 const Message = require('../models/Message');
 const { verifyToken, allowRoles } = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/uploads');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
+});
 
 const router = express.Router();
 
+router.post('/upload', verifyToken, upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+  res.status(200).json({
+    message: 'File uploaded successfully',
+    fileUrl: '/uploads/' + req.file.filename,
+    fileName: req.file.originalname
+  });
+});
+
 router.post('/send', verifyToken, async (req, res) => {
   try {
-    let { receiverId, text } = req.body;
+    let { receiverId, text, fileUrl, fileName } = req.body;
+    
+    // If no text but file is provided, set an empty string or default text
+    if (!text && fileUrl) {
+      text = '';
+    }
 
     // Temporarily preserve class links and general URLs to prevent them from being blocked
     const urls = [];
@@ -38,7 +71,9 @@ router.post('/send', verifyToken, async (req, res) => {
     const newMessage = new Message({
       sender: req.user.id,
       receiver: receiverId,
-      text
+      text,
+      fileUrl,
+      fileName
     });
     await newMessage.save();
     res.status(201).json({ message: 'Message sent', data: newMessage });

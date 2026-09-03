@@ -1243,6 +1243,8 @@
       </div>
 
       <div id="bottomBar" class="bottom-bar hidden">
+        <input type="file" id="chatFileInput" accept=".pdf" style="display:none;" onchange="handleFileUpload(event)">
+        <button class="btn-file" onclick="document.getElementById('chatFileInput').click()" aria-label="Attach PDF" style="background: none; border: none; color: white; cursor: pointer; padding: 0 10px; font-size: 1.2rem;">📎</button>
         <div class="message-input-group">
           <input id="messageInput" type="text" placeholder="Type a message..." onkeydown="handleMessageKeydown(event)">
         </div>
@@ -1962,8 +1964,19 @@
 
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
-        bubble.innerText = msg.text;
-        bubble.innerHTML = bubble.innerHTML.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>');
+        
+        if (msg.fileUrl) {
+          bubble.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.1);padding:8px;border-radius:6px;margin-bottom:4px;">
+              <span style="font-size:1.5rem;">📄</span>
+              <a href="${msg.fileUrl}" target="_blank" style="color:white;text-decoration:none;word-break:break-all;">${msg.fileName || 'Document'}</a>
+            </div>
+            ${msg.text ? msg.text.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>') : ''}
+          `;
+        } else {
+          bubble.innerText = msg.text;
+          bubble.innerHTML = bubble.innerHTML.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>');
+        }
 
         const meta = document.createElement('div');
         meta.className = 'message-time';
@@ -1997,6 +2010,49 @@
       input.value = '';
       await loadMessages(activeStudent, true);
       renderChatList();
+    }
+
+    async function handleFileUpload(event) {
+      if (!activeStudent) return;
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const uploadRes = await fetch('/api/chat/upload', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+        const uploadData = await uploadRes.json();
+        
+        if (uploadRes.ok) {
+          await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token 
+            },
+            body: JSON.stringify({ 
+              receiverId: activeStudent._id, 
+              text: '', 
+              fileUrl: uploadData.fileUrl, 
+              fileName: uploadData.fileName 
+            })
+          });
+          await loadMessages(activeStudent, true);
+          renderChatList();
+        } else {
+          alert('Upload failed: ' + uploadData.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Upload failed');
+      }
+      
+      event.target.value = '';
     }
 
     async function updateStudentStatus(student) {
