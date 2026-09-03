@@ -1971,11 +1971,11 @@
               <span style="font-size:1.5rem;">📄</span>
               <a href="${msg.fileUrl}" target="_blank" style="color:white;text-decoration:none;word-break:break-all;">${msg.fileName || 'Document'}</a>
             </div>
-            ${msg.text ? msg.text.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>') : ''}
+            ${msg.text ? msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>') : ''}
           `;
         } else {
           bubble.innerText = msg.text || '';
-          bubble.innerHTML = bubble.innerHTML.replace(/(https?:\\/\\/[^\\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>');
+          bubble.innerHTML = bubble.innerHTML.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>');
         }
 
         const meta = document.createElement('div');
