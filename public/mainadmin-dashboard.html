@@ -648,6 +648,32 @@
     </main>
   </div>
 
+  <!-- Edit User Modal -->
+  <div class="modal-overlay" id="editUserModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="editUserTitle">Edit User</h3>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <form id="editUserForm" onsubmit="submitEditUser(event)">
+        <input type="hidden" id="editUserId">
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; margin-bottom:5px; color:var(--text);">Name</label>
+          <input type="text" id="editUserName" required style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-color);">
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; margin-bottom:5px; color:var(--text);">Email</label>
+          <input type="email" id="editUserEmail" required style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-color);">
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; margin-bottom:5px; color:var(--text);">New Password (leave blank to keep current)</label>
+          <input type="password" id="editUserPassword" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-color);">
+        </div>
+        <button type="submit" class="button-primary" style="width:100%; padding:12px; margin-top:10px;">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal -->
   <div class="modal-overlay" id="assignmentModal">
     <div class="modal-content">
@@ -777,6 +803,51 @@
       document.getElementById('assignmentModal').classList.remove('active');
     }
 
+    function openEditModal(id, name, email) {
+      document.getElementById('editUserId').value = id;
+      document.getElementById('editUserName').value = name;
+      document.getElementById('editUserEmail').value = email;
+      document.getElementById('editUserPassword').value = '';
+      document.getElementById('editUserModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editUserModal').classList.remove('active');
+    }
+
+    async function submitEditUser(e) {
+      e.preventDefault();
+      const id = document.getElementById('editUserId').value;
+      const name = document.getElementById('editUserName').value;
+      const email = document.getElementById('editUserEmail').value;
+      const password = document.getElementById('editUserPassword').value;
+
+      const body = { name, email };
+      if (password) body.password = password;
+
+      try {
+        const res = await fetch('/api/auth/edit/' + id, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('User updated successfully');
+          closeEditModal();
+          loadAllData();
+        } else {
+          alert('Error updating user: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('An error occurred');
+      }
+    }
+
     function viewStudentAssignments(studentId) {
       const student = window.students.find(s => s._id === studentId);
       if(!student) return;
@@ -801,7 +872,8 @@
           <td>${s.email}</td>
           <td>
             <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px;" onclick="viewStudentAssignments('${s._id}')">View Tutors</button>
-            <button class="button-secondary" style="padding:8px 12px; font-size:0.8rem;" onclick="deleteUser('${s._id}', '${s.name}')">Delete</button>
+            <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px; background:var(--accent-strong);" onclick="openEditModal('${s._id}', '${s.name.replace(/'/g, "\\'")}', '${s.email}')">Edit</button>
+            <button class="button-secondary" style="padding:8px 12px; font-size:0.8rem;" onclick="deleteUser('${s._id}', '${s.name.replace(/'/g, "\\'")}')">Delete</button>
           </td>`;
         body.appendChild(tr);
       });
@@ -817,7 +889,8 @@
           <td>${t.email}</td>
           <td>
             <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px;" onclick="viewTutorAssignments('${t._id}')">View Students</button>
-            <button class="button-secondary" style="padding:8px 12px; font-size:0.8rem;" onclick="deleteUser('${t._id}', '${t.name}')">Delete</button>
+            <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px; background:var(--accent-strong);" onclick="openEditModal('${t._id}', '${t.name.replace(/'/g, "\\'")}', '${t.email}')">Edit</button>
+            <button class="button-secondary" style="padding:8px 12px; font-size:0.8rem;" onclick="deleteUser('${t._id}', '${t.name.replace(/'/g, "\\'")}')">Delete</button>
           </td>`;
         body.appendChild(tr);
       });
