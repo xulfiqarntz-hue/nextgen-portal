@@ -279,11 +279,48 @@
       </div>
 
       <section id="dashboard" class="section active">
-        <div class="panel-grid">
-          <div class="card"><h3>Total Students</h3><strong id="studentCount">0</strong></div>
-          <div class="card"><h3>Total Tutors</h3><strong id="tutorCount">0</strong></div>
-          <div class="card"><h3>Assignments</h3><strong id="assignmentCount">0</strong><p class="note">Assigned pairs in the academy.</p></div>
-          <div class="card"><h3>Chat Activity</h3><strong id="chatCount">Live</strong><p class="note">Monitor student/tutor communications.</p></div>
+        <!-- Main Stats -->
+        <div class="panel-grid" style="margin-bottom: 24px;">
+          <div class="card">
+            <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Total Students</h3>
+            <strong id="studentCount" style="font-size:2.5rem; color:var(--text);">0</strong>
+          </div>
+          <div class="card">
+            <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Total Teachers</h3>
+            <strong id="tutorCount" style="font-size:2.5rem; color:var(--text);">0</strong>
+          </div>
+          <div class="card">
+            <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Total Sub Admins</h3>
+            <strong id="subadminCount" style="font-size:2.5rem; color:var(--text);">0</strong>
+          </div>
+          <div class="card">
+            <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Active Assignments</h3>
+            <strong id="assignmentCount" style="font-size:2.5rem; color:var(--text);">0</strong>
+          </div>
+        </div>
+
+        <!-- Secondary Stats -->
+        <div class="panel-grid" style="margin-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+          <div class="card" style="border-top: 4px solid #3b82f6;">
+            <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Scheduled Classes</h3>
+            <strong id="totalClassesCount" style="font-size:2rem; color:#3b82f6;">0</strong>
+            <p class="note">Total classes in the timetable</p>
+          </div>
+          <div class="card" style="border-top: 4px solid #10b981;">
+            <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Today's Attendance</h3>
+            <strong id="attendanceStats" style="font-size:2rem; color:#10b981;">0 / 0</strong>
+            <p class="note">Marked / Total Expected</p>
+          </div>
+          <div class="card" style="border-top: 4px solid #f59e0b;">
+            <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Gross Revenue (Invoices)</h3>
+            <strong id="revenueCount" style="font-size:2rem; color:#f59e0b;">0</strong>
+            <p class="note">Total billed this month</p>
+          </div>
+          <div class="card" style="border-top: 4px solid #ef4444;">
+            <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Total Payroll (Payslips)</h3>
+            <strong id="payrollCount" style="font-size:2rem; color:#ef4444;">0</strong>
+            <p class="note">Total salary processed this month</p>
+          </div>
         </div>
       </section>
 
@@ -820,6 +857,51 @@
       populateSelects();
       loadInvoices();
       loadPayslips();
+      loadDashboardStats();
+    }
+
+    async function loadDashboardStats() {
+      if(document.getElementById('subadminCount')) {
+        document.getElementById('subadminCount').innerText = window.subadmins ? window.subadmins.length : 0;
+      }
+
+      try {
+        const tRes = await fetch('/api/timetable', { headers: { 'Authorization': 'Bearer ' + token } });
+        if(tRes.ok) {
+          const tData = await tRes.json();
+          const totalClasses = tData.classes ? tData.classes.length : 0;
+          document.getElementById('totalClassesCount').innerText = totalClasses;
+        }
+      } catch(e) {}
+
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const aRes = await fetch('/api/attendance/daily-status?date=' + today, { headers: { 'Authorization': 'Bearer ' + token } });
+        if(aRes.ok) {
+          const aData = await aRes.json();
+          const list = aData.status || [];
+          const done = list.filter(t => t.submitted).length;
+          document.getElementById('attendanceStats').innerText = `${done} / ${list.length}`;
+        }
+      } catch(e) {}
+
+      try {
+        const iRes = await fetch('/api/invoices/list', { headers: { 'Authorization': 'Bearer ' + token } });
+        if(iRes.ok) {
+          const iData = await iRes.json();
+          const totalRev = (iData.invoices || []).reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
+          document.getElementById('revenueCount').innerText = totalRev.toLocaleString();
+        }
+      } catch(e) {}
+
+      try {
+        const pRes = await fetch('/api/payslips/list', { headers: { 'Authorization': 'Bearer ' + token } });
+        if(pRes.ok) {
+          const pData = await pRes.json();
+          const totalPay = (pData.payslips || []).reduce((sum, ps) => sum + (Number(ps.totalSalary) || 0), 0);
+          document.getElementById('payrollCount').innerText = totalPay.toLocaleString();
+        }
+      } catch(e) {}
     }
 
     function selectTab(tab) {
