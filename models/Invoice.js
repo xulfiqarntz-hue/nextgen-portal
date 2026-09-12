@@ -13,6 +13,8 @@ const invoiceSchema = new mongoose.Schema({
   arrears: { type: Number, default: 0 },
   bankAccountNo: { type: String },
   bankName: { type: String },
+  ibanNo: { type: String },
+  accountTitle: { type: String },
   className: { type: String, default: '' },
   total: { type: Number, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

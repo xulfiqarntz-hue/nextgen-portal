@@ -117,6 +117,10 @@
         <span>Bank Account No: <strong id="bankAccount">--</strong></span>
         <span>Bank Name: <strong id="bankName">--</strong></span>
       </div>
+      <div class="payment-row">
+        <span>IBAN No: <strong id="ibanNo">--</strong></span>
+        <span>Account Title: <strong id="accountTitle">--</strong></span>
+      </div>
     </div>
 
     <!-- Items Table -->
@@ -252,6 +256,8 @@
         }
         document.getElementById('bankAccount').innerText = inv.bankAccountNo || '--';
         document.getElementById('bankName').innerText = inv.bankName || '--';
+        document.getElementById('ibanNo').innerText = inv.ibanNo || '--';
+        document.getElementById('accountTitle').innerText = inv.accountTitle || '--';
 
         // Populate totals
         const payment = inv.payment || 0;
@@ -273,6 +279,8 @@
           total: total.toFixed(2),
           bankAccount: inv.bankAccountNo || '--',
           bankName: inv.bankName || '--',
+          ibanNo: inv.ibanNo || '--',
+          accountTitle: inv.accountTitle || '--',
           issueDate: document.getElementById('issueDate').innerText,
           dueDate: document.getElementById('dueDate').innerText
         };

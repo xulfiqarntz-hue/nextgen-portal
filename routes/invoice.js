@@ -12,7 +12,7 @@ router.get('/dummy', (req, res) => {
 
 router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const { studentId, teacherId, month, payment, subjects, discount, arrears, bankAccountNo, bankName, className } = req.body;
+    const { studentId, teacherId, month, payment, subjects, discount, arrears, bankAccountNo, bankName, ibanNo, accountTitle, className } = req.body;
     console.log('Invoice create request - className:', className);
     if (!studentId || !month) {
       return res.status(400).json({ error: 'Student and month are required.' });
@@ -57,6 +57,8 @@ router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (
       arrears: arrearsNumber,
       bankAccountNo: bankAccountNo || '',
       bankName: bankName || '',
+      ibanNo: ibanNo || '',
+      accountTitle: accountTitle || '',
       className: className || '',
       total,
       createdBy: req.user.id

@@ -440,6 +440,8 @@
             <div class="form-group"><label>Arrears / Outstanding</label><input id="invoiceArrears" type="number" placeholder="0" min="0"></div>
             <div class="form-group"><label>Bank Account No</label><input id="invoiceBankAccount" placeholder="00620095011441010"></div>
             <div class="form-group"><label>Bank Name</label><input id="invoiceBankName" placeholder="Al Habib Bank"></div>
+            <div class="form-group"><label>IBAN No</label><input id="invoiceIbanNo" placeholder="PK00ABCD0000000000000000"></div>
+            <div class="form-group"><label>Account Title</label><input id="invoiceAccountTitle" placeholder="Account title"></div>
             <div class="form-group"><label>Class</label><input id="invoiceClass" placeholder="SSC-I"></div>
           </div>
           <div class="inline-actions">
@@ -1075,6 +1077,8 @@
       const arrears = document.getElementById('invoiceArrears').value.trim();
       const bankAccountNo = document.getElementById('invoiceBankAccount').value.trim();
       const bankName = document.getElementById('invoiceBankName').value.trim();
+      const ibanNo = document.getElementById('invoiceIbanNo').value.trim();
+      const accountTitle = document.getElementById('invoiceAccountTitle').value.trim();
       const classElement = document.getElementById('invoiceClass');
       const className = classElement ? classElement.value.trim() : '';
       const msgEl = document.getElementById('invoiceMsg');
@@ -1086,7 +1090,7 @@
       }
       
       try {
-        const payload = { studentId, teacherId, month, subjects, discount, arrears, bankAccountNo, bankName, className };
+        const payload = { studentId, teacherId, month, subjects, discount, arrears, bankAccountNo, bankName, ibanNo, accountTitle, className };
         console.log('Invoice payload:', payload);
         const res = await fetch('/api/invoices/create', {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -1132,6 +1136,8 @@
       if (ia) ia.value = '';
       document.getElementById('invoiceBankAccount').value = '';
       document.getElementById('invoiceBankName').value = '';
+      document.getElementById('invoiceIbanNo').value = '';
+      document.getElementById('invoiceAccountTitle').value = '';
       const ce = document.getElementById('invoiceClass');
       if (ce) ce.value = '';
       document.getElementById('invoiceMsg').innerText = '';
