@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const assignRoutes = require('./routes/assign');
 const chatRoutes = require('./routes/chat');
 const invoiceRoutes = require('./routes/invoice');
+const payslipRoutes = require('./routes/payslip');
 const attendanceRoutes = require('./routes/attendance');
 const timetableRoutes = require('./routes/timetable');
 
@@ -30,6 +31,7 @@ app.use(express.static('public'));
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/payslips', payslipRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/timetable', timetableRoutes);
 app.use('/api', assignRoutes);

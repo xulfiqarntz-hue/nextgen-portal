@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NextGen Academy Payslip</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid #003d99; padding-bottom: 20px; }
+    .logo-section { display: flex; gap: 12px; align-items: center; }
+    .logo { width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; }
+    .logo img { width: 100%; height: 100%; object-fit: contain; }
+    .company-info h1 { font-size: 24px; color: #003d99; margin-bottom: 4px; }
+    .company-info p { font-size: 13px; color: #666; }
+    .invoice-title { text-align: right; font-size: 32px; font-weight: bold; color: #003d99; }
+    
+    .meta-row { display: flex; justify-content: space-between; margin-bottom: 30px; gap: 40px; }
+    .meta-column { flex: 1; }
+    .meta-label { font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; }
+    .meta-value { font-size: 14px; color: #000; margin-top: 4px; }
+    
+    .section-title { font-size: 12px; color: #000; text-transform: uppercase; font-weight: 700; margin-bottom: 12px; margin-top: 20px; }
+    .details-row { display: flex; gap: 30px; margin-bottom: 20px; }
+    .detail-item { flex: 1; }
+    .detail-label { font-size: 11px; color: #666; font-weight: 600; }
+    .detail-value { font-size: 13px; color: #000; margin-top: 2px; }
+    
+    .payment-info { background: #f9f9f9; padding: 12px 15px; border-radius: 4px; margin: 15px 0; font-size: 12px; }
+    .payment-row { display: flex; justify-content: space-between; padding: 4px 0; }
+    
+    .items-table { width: 100%; margin: 25px 0; border-collapse: collapse; }
+    .items-table thead { background: #003d99; color: white; }
+    .items-table th { padding: 12px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .items-table td { padding: 12px 10px; font-size: 12px; border-bottom: 1px solid #ddd; }
+    .items-table tbody tr:nth-child(even) { background: #f9f9f9; }
+    .text-right { text-align: right; }
+    
+    .totals-section { margin: 25px 0; }
+    .totals-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+    .totals-label { width: 150px; font-size: 12px; font-weight: 500; }
+    .totals-value { width: 100px; text-align: right; font-size: 12px; }
+    .total-line { border-top: 1px solid #ccc; padding-top: 8px; }
+    .total-line .totals-label { font-weight: 700; }
+    .total-line .totals-value { font-weight: 700; }
+    
+    .signature-section { margin-top: 40px; display: flex; justify-content: space-between; }
+    .signature-line { text-align: center; width: 45%; }
+    .signature-name { margin-top: 60px; font-size: 11px; font-weight: 600; border-top: 1px solid #000; padding-top: 4px; }
+    
+    .footer { margin-top: 40px; border-top: 1px solid #ddd; padding-top: 15px; font-size: 10px; color: #666; text-align: center; }
+    
+    .actions { margin-top: 30px; display: flex; gap: 12px; justify-content: center; }
+    .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .btn-pdf { background: #003d99; color: white; }
+    .btn-pdf:hover { background: #002966; }
+    .btn-print { background: #666; color: white; }
+    .btn-print:hover { background: #555; }
+    
+    @media print {
+      body { padding: 0; background: white; }
+      .container { box-shadow: none; padding: 0; }
+      .actions { display: none; }
+      @page { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="payslip">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-section">
+        <div class="logo">
+          <img src="/nextgen-logo.png" alt="NextGen Logo">
+        </div>
+        <div class="company-info">
+          <h1>NextGen eAcademy</h1>
+          <p>Anywhere, Anytime</p>
+        </div>
+      </div>
+      <div class="invoice-title">PAYSLIP</div>
+    </div>
+
+    <!-- Meta Information -->
+    <div class="meta-row">
+      <div class="meta-column">
+        <div class="meta-label">Issue Date:</div>
+        <div class="meta-value" id="issueDate">--</div>
+      </div>
+      <div class="meta-column">
+        <div class="meta-label">Salary Month:</div>
+        <div class="meta-value" id="salaryMonth">--</div>
+      </div>
+    </div>
+
+    <!-- Teacher Details -->
+    <div class="section-title">Teacher Details</div>
+    <div class="details-row">
+      <div style="flex:1;">
+        <p>Teacher Name</p>
+        <p class="value" id="teacherName" style="font-weight: 600; font-size: 16px;">--</p>
+      </div>
+    </div>
+
+    <!-- Payment Method -->
+    <div class="section-title">Bank Details</div>
+    <div class="payment-info">
+      <div class="payment-row">
+        <span>Bank Account No: <strong id="bankAccount">--</strong></span>
+        <span>Bank Name: <strong id="bankName">--</strong></span>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>No of Lectures</th>
+          <th>No of Absents</th>
+          <th class="text-right">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="itemsTableBody">
+        <tr>
+          <td>Salary for the month</td>
+          <td id="noOfLectures">0</td>
+          <td id="noOfAbsents">0</td>
+          <td class="text-right" id="baseAmount">0.00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Totals Section -->
+    <div class="totals-section">
+      <div class="totals-row">
+        <div class="totals-label">Gross Amount</div>
+        <div class="totals-value" id="subTotal">--</div>
+      </div>
+      <div class="totals-row">
+        <div class="totals-label">Deductions</div>
+        <div class="totals-value" id="totalDeductions">--</div>
+      </div>
+      <div class="totals-row total-line">
+        <div class="totals-label">Net Salary</div>
+        <div class="totals-value" id="netSalary">--</div>
+      </div>
+    </div>
+
+    <!-- Signature Section -->
+    <div class="signature-section" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px;">
+      
+      <!-- Empty space on the left to balance the signature on the right -->
+      <div style="width: 250px;"></div>
+
+      <!-- Company Stamp (Center) -->
+      <div style="flex: 1; text-align: center;">
+        <img src="/stamp.png" alt="Company Stamp" style="width: 140px; mix-blend-mode: multiply; opacity: 0.8; margin-bottom: -15px;" />
+      </div>
+
+      <!-- Signature (Right) -->
+      <div class="signature-line" style="width: 250px; text-align: center;">
+        <img src="/signature.png" alt="Signature" style="height: 120px; display: block; margin: 0 auto -10px auto; mix-blend-mode: multiply;" />
+        <div style="border-top: 1px solid #000; padding-top: 8px;">
+          <div style="font-size: 15px; font-weight: bold; color: #000;">Abdul Hadi</div>
+          <div style="font-size: 12px; color: #666; margin-top: 2px;">Authorised Signatory</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>Thank you for your hard work and dedication!</p>
+      <p>Website: www.nextgeneacademy.com | Email: info.nextgeneacademy@gmail.com | Contact No. +923095514706</p>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="actions">
+    <button class="btn btn-pdf" onclick="downloadPDF()">Download as PDF</button>
+    <button class="btn btn-print" onclick="window.print()">Print Payslip</button>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const payslipId = params.get('id');
+    const token = localStorage.getItem('token');
+
+    async function loadPayslip() {
+      if (!payslipId) {
+        alert('Missing payslip ID');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/payslips/get/' + payslipId, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.error || 'Unable to load payslip');
+          return;
+        }
+
+        const data = await res.json();
+        const ps = data.payslip;
+
+        // Populate dates
+        const issueDate = new Date(ps.createdAt);
+        document.getElementById('issueDate').innerText = issueDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        document.getElementById('salaryMonth').innerText = ps.month || '--';
+
+        // Populate details
+        document.getElementById('teacherName').innerText = ps.teacher?.name || '--';
+        document.getElementById('bankAccount').innerText = ps.bankAccountNo || '--';
+        document.getElementById('bankName').innerText = ps.bankName || '--';
+
+        document.getElementById('noOfLectures').innerText = ps.noOfLectures || '0';
+        document.getElementById('noOfAbsents').innerText = ps.noOfAbsents || '0';
+
+        // Populate totals
+        const amount = ps.amount || 0;
+        const deductions = ps.deductions || 0;
+        const netSalary = ps.totalSalary || 0;
+        
+        document.getElementById('baseAmount').innerText = amount.toFixed(2);
+        document.getElementById('subTotal').innerText = amount.toFixed(2);
+        document.getElementById('totalDeductions').innerText = deductions.toFixed(2);
+        document.getElementById('netSalary').innerText = netSalary.toFixed(2);
+
+        // Store data for PDF filename
+        window.payslipData = {
+          teacherName: ps.teacher?.name || 'Teacher',
+          month: ps.month || 'Month'
+        };
+      } catch (err) {
+        alert('Error loading payslip: ' + err.message);
+      }
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('payslip');
+      
+      const teacherNameSafe = (window.payslipData?.teacherName || 'teacher').replace(/\s+/g, '-').toLowerCase();
+      const monthSafe = (window.payslipData?.month || 'month').replace(/\s+/g, '-').toLowerCase();
+      const filename = `payslip-${teacherNameSafe}-${monthSafe}.pdf`;
+
+      const opt = {
+        margin: 10,
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          windowWidth: 800, 
+          width: 800,
+          x: 0, 
+          y: 0,
+          scrollX: 0, 
+          scrollY: 0,
+          onclone: function(clonedDoc) {
+            // Remove body padding so the element is exactly at 0,0
+            clonedDoc.body.style.padding = '0';
+            const el = clonedDoc.getElementById('payslip');
+            if (el) {
+              el.style.margin = '0';
+              el.style.maxWidth = 'none';
+              el.style.width = '800px';
+            }
+          }
+        },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    }
+
+    // Load payslip on page load
+    loadPayslip();
+  </script>
+</body>
+</html>

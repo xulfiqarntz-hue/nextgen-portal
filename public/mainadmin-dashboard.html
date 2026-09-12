@@ -254,6 +254,7 @@
         <button data-tab="chat" onclick="selectTab('chat')">Chat <span class="badge">New</span></button>
         <button data-tab="direct-chat" onclick="selectTab('direct-chat')">Admin Direct Chat <span class="badge" style="background:#38bdf8;color:#0b1220;">Live</span></button>
         <button data-tab="invoices" onclick="selectTab('invoices')">Invoices</button>
+        <button data-tab="payslips" onclick="selectTab('payslips')">Payslips</button>
         <button data-tab="attendance" onclick="selectTab('attendance')">Attendance</button>
         <button data-tab="timetable" onclick="window.location.href='/timetable.html'">Timetable</button>
         <button data-tab="profile-settings" onclick="selectTab('profile-settings')">Profile Settings</button>
@@ -463,6 +464,45 @@
               </tr>
             </thead>
             <tbody id="invoiceTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="payslips" class="section">
+        <header><h3>Generate Payslip</h3></header>
+        <div class="card">
+          <div class="form-grid">
+            <div class="form-group"><label>Teacher</label><select id="payslipTeacherSelect"></select></div>
+            <div class="form-group"><label>Salary Month</label><input id="payslipMonth" placeholder="March 2026"></div>
+            <div class="form-group"><label>Bank Account No</label><input id="payslipBankAccount" placeholder="00620095011441010"></div>
+            <div class="form-group"><label>Bank Name</label><input id="payslipBankName" placeholder="Al Habib Bank"></div>
+            <div class="form-group"><label>No of Absents</label><input id="payslipAbsents" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>No of Lectures</label><input id="payslipLectures" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Amount (Gross)</label><input id="payslipAmount" type="number" placeholder="0" min="0"></div>
+            <div class="form-group"><label>Deductions</label><input id="payslipDeductions" type="number" placeholder="0" min="0"></div>
+          </div>
+          <div class="inline-actions">
+            <button class="button-primary" onclick="createPayslip()">Generate Payslip</button>
+            <button class="button-secondary" onclick="clearPayslipForm()">Clear</button>
+          </div>
+          <p id="payslipMsg" class="note"></p>
+        </div>
+        <div class="card" style="margin-top:24px;">
+          <h3>Recent Payslips</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Teacher</th>
+                <th>Month</th>
+                <th>Absents</th>
+                <th>Lectures</th>
+                <th>Amount</th>
+                <th>Deductions</th>
+                <th>Net Salary</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="payslipTableBody"></tbody>
           </table>
         </div>
       </section>
@@ -689,7 +729,7 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
-    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subadmins','add-subadmin','chat','direct-chat','invoices','attendance', 'profile-settings'];
+    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subadmins','add-subadmin','chat','direct-chat','invoices','payslips','attendance', 'profile-settings'];
 
     let directChatUsers = [];
     let activeDirectChatUser = null;
@@ -777,6 +817,7 @@
       renderSubadminTable();
       populateSelects();
       loadInvoices();
+      loadPayslips();
     }
 
     function selectTab(tab) {
@@ -912,7 +953,7 @@
 
     function populateSelects() {
       const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect')];
-      const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect')];
+      const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect'), document.getElementById('payslipTeacherSelect')];
       studentSelects.forEach(select => {
         select.innerHTML = '<option value="">Select student</option>';
         window.students.forEach(s => { select.innerHTML += `<option value="${s._id}">${s.name} (${s.email})</option>`; });
@@ -1117,6 +1158,101 @@
     function downloadInvoice(id) {
       // open printable invoice view
       window.open('/invoice-view.html?id=' + id, '_blank');
+    }
+
+    async function loadPayslips() {
+      const res = await fetch('/api/payslips/list', { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      const body = document.getElementById('payslipTableBody');
+      if (!body) return;
+      body.innerHTML = '';
+      if (!data.payslips) return;
+      data.payslips.forEach(ps => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${ps.teacher?.name || 'N/A'}</td>
+          <td>${ps.month}</td>
+          <td>${ps.noOfAbsents || 0}</td>
+          <td>${ps.noOfLectures || 0}</td>
+          <td>${ps.amount}</td>
+          <td>${ps.deductions}</td>
+          <td>${ps.totalSalary}</td>
+          <td><button class="button-primary" onclick="downloadPayslip('${ps._id}')">Download</button>
+              <button class="button-secondary" onclick="deletePayslip('${ps._id}')" style="margin-left:8px;background:#ef4444;color:#fff;">Delete</button></td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    async function createPayslip() {
+      const teacherId = document.getElementById('payslipTeacherSelect').value;
+      const month = document.getElementById('payslipMonth').value.trim();
+      const bankAccountNo = document.getElementById('payslipBankAccount').value.trim();
+      const bankName = document.getElementById('payslipBankName').value.trim();
+      const noOfAbsents = document.getElementById('payslipAbsents').value.trim();
+      const noOfLectures = document.getElementById('payslipLectures').value.trim();
+      const amount = document.getElementById('payslipAmount').value.trim();
+      const deductions = document.getElementById('payslipDeductions').value.trim();
+      
+      const msgEl = document.getElementById('payslipMsg');
+      msgEl.innerText = '';
+      
+      if (!teacherId || !month || amount === '') {
+        msgEl.innerText = 'Teacher, month, and amount are required.';
+        return;
+      }
+      
+      try {
+        const payload = { teacherId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions };
+        const res = await fetch('/api/payslips/create', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        
+        if (!res.ok) {
+          msgEl.innerText = 'Payslip error: ' + (data.error || 'Failed');
+          return;
+        }
+
+        msgEl.innerText = data.message || 'Payslip generated successfully.';
+        clearPayslipForm();
+        loadPayslips();
+      } catch (err) {
+        msgEl.innerText = 'Unable to send payslip request: ' + err.message;
+      }
+    }
+
+    function clearPayslipForm() {
+      document.getElementById('payslipTeacherSelect').value = '';
+      document.getElementById('payslipMonth').value = '';
+      document.getElementById('payslipBankAccount').value = '';
+      document.getElementById('payslipBankName').value = '';
+      document.getElementById('payslipAbsents').value = '';
+      document.getElementById('payslipLectures').value = '';
+      document.getElementById('payslipAmount').value = '';
+      document.getElementById('payslipDeductions').value = '';
+      document.getElementById('payslipMsg').innerText = '';
+    }
+
+    async function deletePayslip(id) {
+      if (!confirm('Delete this payslip?')) return;
+      try {
+        const res = await fetch('/api/payslips/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (!res.ok) {
+          alert('Delete failed: ' + (data.error || 'Failed'));
+          return;
+        }
+        alert(data.message || 'Payslip deleted.');
+        loadPayslips();
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+      }
+    }
+
+    function downloadPayslip(id) {
+      window.open('/payslip-view.html?id=' + id, '_blank');
     }
 
     function clearAddSubadmin() {
