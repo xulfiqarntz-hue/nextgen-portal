@@ -1587,12 +1587,20 @@
           return;
         }
 
-        // ── Compute summary from returned logs ──
-        const total   = logs.length;
-        const present = logs.filter(l => l.status === 'present').length;
-        const absent  = logs.filter(l => l.status === 'absent').length;
-        const late    = logs.filter(l => l.status === 'late').length;
-        const pct     = n => total > 0 ? Math.round((n / total) * 100) : 0;
+        // ── Compute summary from returned logs or teacher summary ──
+        let total, present, absent, late;
+        if (teacherId && data.teacherSummary) {
+          total = data.teacherSummary.total;
+          present = data.teacherSummary.present;
+          absent = data.teacherSummary.absent;
+          late = data.teacherSummary.late;
+        } else {
+          total   = logs.length;
+          present = logs.filter(l => l.status === 'present').length;
+          absent  = logs.filter(l => l.status === 'absent').length;
+          late    = logs.filter(l => l.status === 'late').length;
+        }
+        const pct = n => total > 0 ? Math.round((n / total) * 100) : 0;
 
         const presentPct = pct(present);
         const absentPct  = pct(absent);

@@ -1211,9 +1211,76 @@
         const data = await res.json();
         const logs = data.logs || [];
         const statusPill = s => { const map={present:'Present',absent:'Absent',late:'Late'},cls={present:'att-a-pill-present',absent:'att-a-pill-absent',late:'att-a-pill-late'}; return `<span class="att-a-pill ${cls[s]||''}">${map[s]||s}</span>`; };
+        // ── Compute summary from returned logs or teacher summary ──
+        let total, present, absent, late;
+        if (teacherId && data.teacherSummary) {
+          total = data.teacherSummary.total;
+          present = data.teacherSummary.present;
+          absent = data.teacherSummary.absent;
+          late = data.teacherSummary.late;
+        } else {
+          total   = logs.length;
+          present = logs.filter(l => l.status === 'present').length;
+          absent  = logs.filter(l => l.status === 'absent').length;
+          late    = logs.filter(l => l.status === 'late').length;
+        }
+        const pct = n => total > 0 ? Math.round((n / total) * 100) : 0;
+
+        const presentPct = pct(present);
+        const absentPct  = pct(absent);
+        const latePct    = pct(late);
+
+        // ── Rebuild wrap with summary + table ──
         document.getElementById('attALogsWrap').innerHTML = `
+          <!-- Stat cards -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;padding:18px 18px 0;">
+            <div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:10px 20px;min-width:100px;text-align:center;flex:1;">
+              <div style="font-size:1.6rem;font-weight:700;color:#4ade80;">${present}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Present</div>
+            </div>
+            <div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:10px 20px;min-width:100px;text-align:center;flex:1;">
+              <div style="font-size:1.6rem;font-weight:700;color:#f87171;">${absent}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Absent</div>
+            </div>
+            <div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:10px 20px;min-width:100px;text-align:center;flex:1;">
+              <div style="font-size:1.6rem;font-weight:700;color:#fbbf24;">${late}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Late</div>
+            </div>
+            <div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:10px 20px;min-width:100px;text-align:center;flex:1;">
+              <div style="font-size:1.6rem;font-weight:700;color:#a5b4fc;">${total}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">Total</div>
+            </div>
+          </div>
+
+          <!-- Progress bars -->
+          <div style="padding:14px 18px 4px;">
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">Present</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${presentPct}%;background:#22c55e;"></div></div>
+              <div class="att-a-bar-pct" style="color:#4ade80;">${presentPct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:48px;text-align:right;">${present}/${total}</div>
+            </div>
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">Absent</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${absentPct}%;background:#ef4444;"></div></div>
+              <div class="att-a-bar-pct" style="color:#f87171;">${absentPct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:48px;text-align:right;">${absent}/${total}</div>
+            </div>
+            <div class="att-a-bar-row">
+              <div class="att-a-bar-label">Late</div>
+              <div class="att-a-bar-track"><div class="att-a-bar-fill" style="width:${latePct}%;background:#f59e0b;"></div></div>
+              <div class="att-a-bar-pct" style="color:#fbbf24;">${latePct}%</div>
+              <div style="font-size:.78rem;color:var(--muted);min-width:48px;text-align:right;">${late}/${total}</div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div style="margin:10px 18px;border-top:1px solid rgba(255,255,255,.06);"></div>
+
+          <!-- Results table -->
           <div class="att-a-empty" id="attALogsEmpty" style="display:${!logs.length?'flex':'none'}"><div class="att-a-empty-icon">📭</div><h4>No records found</h4><p>Try adjusting your filters.</p></div>
           <div style="overflow-x:auto;" id="attALogsTableWrap"><table class="att-a-table" id="attALogsTable"><thead><tr><th>Date</th><th>Teacher</th><th>Student</th><th>Topic</th><th>Status</th><th>Submitted At</th></tr></thead><tbody id="attALogsBody"></tbody></table></div>`;
+        
         if (logs.length) {
           const tbody = document.getElementById('attALogsBody');
           logs.forEach(l => {

@@ -132,7 +132,82 @@ router.get(
         );
       }
 
-      res.json({ logs });
+      let teacherSummary = null;
+      if (teacherId) {
+        let minDate = dateFrom;
+        let maxDate = dateTo;
+        if (!minDate && logs.length > 0) minDate = logs[logs.length - 1].date;
+        if (!maxDate && logs.length > 0) maxDate = logs[0].date;
+
+        if (minDate && maxDate) {
+          const timetable = await Timetable.findOne().lean();
+          if (timetable && timetable.data && Array.isArray(timetable.data.classes)) {
+            // Get all classes for this teacher (optionally filtered by student)
+            const teacherClasses = timetable.data.classes.filter(c => {
+              if (c.teacher !== teacherId) return false;
+              if (studentId && c.students && !c.students.includes(studentId)) return false;
+              return true;
+            });
+            
+            let total = 0;
+            let present = 0;
+            let absent = 0;
+
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            let current = new Date(minDate + 'T00:00:00Z');
+            const end = new Date(maxDate + 'T00:00:00Z');
+
+            // Pre-fetch all attendance records by this teacher in this range to optimize lookup
+            const teacherLogs = await Attendance.find({ 
+              teacher: teacherId, 
+              date: { $gte: minDate, $lte: maxDate } 
+            }).select('date student').lean();
+            
+            // Map: date -> Set of student IDs marked on that date
+            const markedMap = {};
+            teacherLogs.forEach(l => {
+              if (!markedMap[l.date]) markedMap[l.date] = new Set();
+              markedMap[l.date].add(l.student.toString());
+            });
+
+            while (current <= end) {
+              const dayName = dayNames[current.getUTCDay()];
+              const dateStr = current.toISOString().slice(0, 10);
+              
+              // Find all classes scheduled for this day of the week
+              const classesToday = teacherClasses.filter(c => c.days && c.days.includes(dayName));
+              
+              classesToday.forEach(cls => {
+                total++;
+                // Check if teacher marked any of the students in this class on this date
+                const markedStudents = markedMap[dateStr];
+                let classMarked = false;
+                if (markedStudents && cls.students) {
+                  classMarked = cls.students.some(sId => markedStudents.has(sId));
+                }
+                
+                if (classMarked) present++;
+                else absent++;
+              });
+              
+              current.setUTCDate(current.getUTCDate() + 1);
+            }
+
+            const pct = (n) => (total > 0 ? Math.round((n / total) * 100) : 0);
+            teacherSummary = {
+              total,
+              present,
+              absent,
+              late: 0,
+              presentPct: pct(present),
+              absentPct: pct(absent),
+              latePct: 0
+            };
+          }
+        }
+      }
+
+      res.json({ logs, teacherSummary });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
