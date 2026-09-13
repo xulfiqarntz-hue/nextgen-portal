@@ -307,7 +307,50 @@ router.get(
         .sort({ date: -1 })
         .lean();
 
-      const total = records.length;
+      let minDate = dateFrom;
+      let maxDate = dateTo;
+      
+      if (!minDate && records.length > 0) {
+        minDate = records[records.length - 1].date; // oldest record
+      }
+      if (!maxDate && records.length > 0) {
+        maxDate = records[0].date; // newest record
+      }
+
+      let total = 0;
+      if (minDate && maxDate) {
+        const timetable = await Timetable.findOne().lean();
+        if (timetable && timetable.data && Array.isArray(timetable.data.classes)) {
+          const studentClasses = timetable.data.classes.filter(c => 
+            c.students && c.students.includes(student._id.toString())
+          );
+          
+          const dayCounts = {};
+          studentClasses.forEach(c => {
+            (c.days || []).forEach(day => {
+              dayCounts[day] = (dayCounts[day] || 0) + 1;
+            });
+          });
+
+          const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          let current = new Date(minDate + 'T00:00:00Z');
+          const end = new Date(maxDate + 'T00:00:00Z');
+          
+          while (current <= end) {
+            const dayName = dayNames[current.getUTCDay()];
+            if (dayCounts[dayName]) {
+              total += dayCounts[dayName];
+            }
+            current.setUTCDate(current.getUTCDate() + 1);
+          }
+        }
+      }
+
+      // Fallback if timetable is empty or no dates available
+      if (total === 0 && records.length > 0) {
+        total = records.length;
+      }
+
       const present = records.filter((r) => r.status === 'present').length;
       const absent  = records.filter((r) => r.status === 'absent').length;
       const late    = records.filter((r) => r.status === 'late').length;

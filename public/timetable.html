@@ -41,14 +41,9 @@
   <header><h1>Academy Timetable</h1><p>Choose any class start time and duration between 3:00 PM and midnight.</p></header>
   <main>
     <section class="grid">
-      <div class="card setup">
+      <div class="card setup" style="display:none;">
         <h2>People</h2>
-        <h3>Add teacher</h3>
-        <div class="row"><input id="teacherName" placeholder="Teacher name"><button onclick="addPerson('teacher')">Add</button></div>
-        <h3>Add student</h3>
-        <div class="row"><input id="studentName" placeholder="Student name"><button onclick="addPerson('student')">Add</button></div>
-        <h3>Your people</h3>
-        <div id="people" class="chips"><span class="empty">No teachers or students added yet.</span></div>
+        <div id="people" class="chips"></div>
       </div>
 
       <div class="card booking">
@@ -93,8 +88,8 @@
       $('time').innerHTML='<option value="auto">Find automatically</option>'+TIMES.map(t=>`<option>${t}</option>`).join('');
       $('duration').innerHTML='<option value="30">30 minutes</option><option value="40">40 minutes</option><option value="60" selected>1 hour</option>'; render();
     }
-    function addPerson(type){const el=$(type+'Name'),name=el.value.trim(); if(!name)return; if(data[type+'s'].some(x=>x.name.toLowerCase()===name.toLowerCase()))return message('That person is already listed.'); data[type+'s'].push({id:id(),name});el.value='';persist();render();}
-    function deletePerson(type,personId){if(data.classes.some(c=>c.teacher===personId||c.students.includes(personId)))return message('Remove or change this person’s classes before deleting them.'); data[type+'s']=data[type+'s'].filter(x=>x.id!==personId);persist();render();}
+    function addPerson(type){ /* Removed manual add */ }
+    function deletePerson(type,personId){ /* Removed manual delete */ }
     function getSelectedDays(){return [...document.querySelectorAll('#dayList input:checked')].map(x=>x.value);}
     function getSelectedStudents(){return [...document.querySelectorAll('#studentList input:checked')].map(x=>x.value);}
     function person(type,pid){return data[type+'s'].find(x=>x.id===pid)?.name||'Unknown';}
@@ -111,7 +106,7 @@
     function message(text){const n=$('notice');n.textContent=text;n.style.display='block';clearTimeout(window.noticeTimer);window.noticeTimer=setTimeout(()=>n.style.display='none',5000);}
     function removeClass(cid){if(confirm('Remove this class?')){data.classes=data.classes.filter(c=>c.id!==cid);persist();render();}}
     function render(){
-      $('people').innerHTML=[...data.teachers.map(p=>`<span class="chip">Teacher: ${esc(p.name)} <button class="danger" onclick="deletePerson('teacher','${p.id}')" title="Remove" style="padding:0 3px;background:none">×</button></span>`),...data.students.map(p=>`<span class="chip">Student: ${esc(p.name)} <button class="danger" onclick="deletePerson('student','${p.id}')" title="Remove" style="padding:0 3px;background:none">×</button></span>`)].join('')||'<span class="empty">No teachers or students added yet.</span>';
+      $('people').innerHTML=[...data.teachers.map(p=>`<span class="chip">Teacher: ${esc(p.name)}</span>`),...data.students.map(p=>`<span class="chip">Student: ${esc(p.name)}</span>`)].join('')||'<span class="empty">No teachers or students loaded.</span>';
       $('teacher').innerHTML='<option value="">Select teacher</option>'+data.teachers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
       $('studentList').innerHTML=data.students.map(p=>`<label><input type="checkbox" value="${p.id}"> ${esc(p.name)}</label>`).join('')||'<span class="empty">Add students first.</span>';
       const kind=$('viewType').value, pv=$('viewPerson').value;let options='<option value="">Select a person</option>'; if(kind==='teacher')options+=data.teachers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');if(kind==='student')options+=data.students.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');$('viewPerson').innerHTML=kind==='all'?'<option>All people</option>':options;$('viewPerson').style.display=kind==='all'?'none':'';if(pv&&[...$('viewPerson').options].some(o=>o.value===pv))$('viewPerson').value=pv;
@@ -150,11 +145,28 @@
     function importData(e){const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const incoming=JSON.parse(reader.result);if(!Array.isArray(incoming.teachers)||!Array.isArray(incoming.students)||!Array.isArray(incoming.classes))throw Error();data=incoming;persist();render();message('Backup restored.');}catch{message('That file is not a valid timetable backup.');}};reader.readAsText(f);}
     async function loadData() {
       try {
+        // Fetch timetable
         const res = await fetch('/api/timetable', { headers: { 'Authorization': 'Bearer ' + token } });
         if(res.ok) {
           const serverData = await res.json();
-          if(serverData && Array.isArray(serverData.classes)) data = serverData;
+          if(serverData && Array.isArray(serverData.classes)) data.classes = serverData.classes;
         }
+        
+        // Fetch real system users
+        const [tutorsRes, studentsRes] = await Promise.all([
+          fetch('/api/users/tutors', { headers: { 'Authorization': 'Bearer ' + token } }),
+          fetch('/api/users/students', { headers: { 'Authorization': 'Bearer ' + token } })
+        ]);
+        
+        if (tutorsRes.ok) {
+          const tutors = await tutorsRes.json();
+          data.teachers = tutors.map(t => ({ id: t._id, name: t.name }));
+        }
+        if (studentsRes.ok) {
+          const students = await studentsRes.json();
+          data.students = students.map(s => ({ id: s._id, name: s.name }));
+        }
+        
       } catch(e) { console.error(e); }
       init();
     }
