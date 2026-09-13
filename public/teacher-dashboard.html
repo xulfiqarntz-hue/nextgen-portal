@@ -1295,7 +1295,7 @@
       <!-- ── Attendance Overlay ── -->
       <div id="attendanceOverlay">
         <div class="att-header">
-          <h3>📋 Attendance</h3>
+          <h3>Attendance</h3>
           <div class="att-header-actions">
             <button class="btn-end" style="background:rgba(255,255,255,0.15);" onclick="closeAttendance()">✕ Close</button>
           </div>
@@ -1303,14 +1303,29 @@
 
         <!-- Tab bar -->
         <div class="att-tab-bar">
-          <button class="att-tab active" id="attTabMark" onclick="switchAttTab('mark')">📝 Mark Attendance</button>
-          <button class="att-tab" id="attTabHistory" onclick="switchAttTab('history')">📂 My History</button>
+          <button class="att-tab active" id="attTabMark" onclick="switchAttTab('mark')">Mark Attendance</button>
+          <button class="att-tab" id="attTabHistory" onclick="switchAttTab('history')">My History</button>
         </div>
 
         <div class="att-body">
 
           <!-- ─── PANEL: MARK ATTENDANCE ─── -->
           <div class="att-panel active" id="attPanelMark">
+
+            <!-- Teacher Self Attendance -->
+            <div style="background:#fff;border-radius:18px;padding:20px;border:1.5px solid #e2e8f0;margin-bottom:20px;">
+              <div class="att-section-title" style="margin-bottom:14px;">My Attendance</div>
+              <div class="att-form-row">
+                <div class="att-form-group">
+                  <label>My Status for <span id="attMyDateDisplay">Selected Date</span></label>
+                  <div class="att-status-toggle">
+                    <button class="att-status-btn selected-present" onclick="setMyAttStatus('present')" id="myAttPresent">Present</button>
+                    <button class="att-status-btn" onclick="setMyAttStatus('absent')" id="myAttAbsent">Absent</button>
+                    <button class="att-status-btn" onclick="setMyAttStatus('late')" id="myAttLate">Late</button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <!-- Session Setup -->
             <div style="background:#fff;border-radius:18px;padding:20px;border:1.5px solid #e2e8f0;">
@@ -1327,7 +1342,7 @@
               </div>
               <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
                 <button class="att-btn-primary" onclick="loadAttendanceStudents()" id="attLoadBtn">
-                  <span>⚡</span> Load Students
+                  <span>Load Students</span>
                 </button>
               </div>
             </div>
@@ -1378,7 +1393,7 @@
               <!-- Submit -->
               <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
                 <button class="att-btn-primary" onclick="submitAttendance()" id="attSubmitBtn">
-                  <span>✅</span> Submit Attendance
+                  <span>Submit Attendance</span>
                 </button>
                 <button class="att-btn-secondary" onclick="resetAttendanceForm()">↺ Reset</button>
               </div>
@@ -1393,7 +1408,7 @@
             <!-- Empty state (no students assigned) -->
             <div id="attEmpty" style="display:none;">
               <div class="att-empty">
-                <div class="att-empty-icon">🎓</div>
+                <div class="att-empty-icon"></div>
                 <h4>No students assigned</h4>
                 <p>Ask your admin to assign students to you before taking attendance.</p>
               </div>
@@ -1412,7 +1427,7 @@
                   <input type="date" id="attHistDate">
                 </div>
                 <button class="att-btn-primary" onclick="loadAttHistory()">
-                  <span>🔍</span> Search
+                  <span>Search</span>
                 </button>
                 <button class="att-btn-secondary" onclick="clearAttHistory()">Clear</button>
               </div>
@@ -1420,7 +1435,7 @@
 
             <div id="attHistResults" style="background:#fff;border-radius:18px;border:1.5px solid #e2e8f0;overflow:hidden;">
               <div class="att-empty">
-                <div class="att-empty-icon">📂</div>
+                <div class="att-empty-icon"></div>
                 <h4>No records loaded</h4>
                 <p>Select a date above and click Search.</p>
               </div>
@@ -2110,6 +2125,11 @@
       const todayISO = new Date().toISOString().slice(0, 10);
       const dateEl = document.getElementById('attDate');
       if (!dateEl.value) dateEl.value = todayISO;
+      document.getElementById('attMyDateDisplay').textContent = dateEl.value;
+
+      dateEl.addEventListener('change', (e) => {
+        document.getElementById('attMyDateDisplay').textContent = e.target.value;
+      });
     }
 
     function closeAttendance() {
@@ -2122,6 +2142,16 @@
       document.getElementById('attPanelHistory').classList.toggle('active', tab === 'history');
       document.getElementById('attTabMark').classList.toggle('active', tab === 'mark');
       document.getElementById('attTabHistory').classList.toggle('active', tab === 'history');
+    }
+
+    let myAttStatus = 'present';
+    function setMyAttStatus(status) {
+      myAttStatus = status;
+      const statusClasses = { present: 'selected-present', absent: 'selected-absent', late: 'selected-late' };
+      ['present', 'absent', 'late'].forEach(s => {
+        document.getElementById('myAtt' + s.charAt(0).toUpperCase() + s.slice(1)).className = 'att-status-btn';
+      });
+      document.getElementById('myAtt' + status.charAt(0).toUpperCase() + status.slice(1)).className = 'att-status-btn ' + statusClasses[status];
     }
 
     // ── Load students with skeleton screen ──
@@ -2170,7 +2200,7 @@
         showAttToast('Failed to load students: ' + err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<span>⚡</span> Reload Students';
+        btn.innerHTML = '<span>Reload Students</span>';
       }
     }
 
@@ -2367,9 +2397,20 @@
 
       const btn = document.getElementById('attSubmitBtn');
       btn.disabled = true;
-      btn.innerHTML = '<span>⏳</span> Submitting…';
+      btn.innerHTML = '<span>Submitting…</span>';
 
       try {
+        // Send teacher's own attendance first
+        await fetch('/api/attendance/teacher-self-submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ date, status: myAttStatus })
+        });
+
+        // Send students' attendance
         const res = await fetch('/api/attendance/submit', {
           method: 'POST',
           headers: {
@@ -2386,7 +2427,7 @@
         showAttToast('❌ ' + err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<span>✅</span> Submit Attendance';
+        btn.innerHTML = '<span>Submit Attendance</span>';
       }
     }
 
@@ -2401,7 +2442,8 @@
       document.getElementById('attEmpty').style.display = 'none';
       document.getElementById('attSkeleton').style.display = 'none';
       document.getElementById('attAddStudentPicker').style.display = 'none';
-      document.getElementById('attLoadBtn').innerHTML = '<span>⚡</span> Load Students';
+      document.getElementById('attLoadBtn').innerHTML = '<span>Load Students</span>';
+      setMyAttStatus('present');
     }
 
     // ── Toast notification ──
@@ -2446,7 +2488,7 @@
         if (!logs.length) {
           container.innerHTML = `
             <div class="att-empty">
-              <div class="att-empty-icon">📭</div>
+              <div class="att-empty-icon"></div>
               <h4>No records found</h4>
               <p>${date ? 'No attendance submitted for ' + date + '.' : 'No attendance records yet.'}</p>
             </div>`;
@@ -2492,7 +2534,7 @@
       document.getElementById('attHistDate').value = '';
       document.getElementById('attHistResults').innerHTML = `
         <div class="att-empty">
-          <div class="att-empty-icon">📂</div>
+          <div class="att-empty-icon"></div>
           <h4>No records loaded</h4>
           <p>Select a date above and click Search.</p>
         </div>`;

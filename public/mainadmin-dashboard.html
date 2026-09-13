@@ -227,7 +227,11 @@
     @media print {
       .sidebar, .att-a-filter-bar, .att-a-subtab-bar, .att-a-actions, .nav, .logout-btn, .theme-toggle { display: none !important; }
       body { background: #fff; color: #000; }
+      .layout { display: block !important; }
+      .content { padding: 0 !important; width: 100% !important; max-width: 100% !important; }
+      .section { display: block !important; }
       .att-a-table th, .att-a-table td { color: #000; border-color: #ccc; }
+      .card { box-shadow: none; border: none; padding: 0; }
     }
   </style>
 </head>
@@ -595,6 +599,7 @@
                   <tr>
                     <th>Teacher</th>
                     <th>Email</th>
+                    <th>Own Status</th>
                     <th>Students</th>
                     <th>Marked</th>
                     <th>Status</th>
@@ -869,8 +874,10 @@
         const tRes = await fetch('/api/timetable', { headers: { 'Authorization': 'Bearer ' + token } });
         if(tRes.ok) {
           const tData = await tRes.json();
-          const totalClasses = tData.classes ? tData.classes.length : 0;
-          document.getElementById('totalClassesCount').innerText = totalClasses;
+          const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const todayName = daysOfWeek[new Date().getDay()];
+          const todayClasses = tData.classes ? tData.classes.filter(c => c.days && c.days.includes(todayName)) : [];
+          document.getElementById('totalClassesCount').innerText = todayClasses.length;
         }
       } catch(e) {}
 
@@ -1470,10 +1477,18 @@
           const pill = t.submitted
             ? '<span class="att-a-pill att-a-pill-done">Submitted</span>'
             : '<span class="att-a-pill att-a-pill-pending">Pending</span>';
+          
+          let ownPill = '';
+          if (t.ownStatus === 'present') ownPill = '<span class="att-a-pill" style="background:#dcfce7;color:#15803d;">Present</span>';
+          else if (t.ownStatus === 'absent') ownPill = '<span class="att-a-pill" style="background:#fee2e2;color:#b91c1c;">Absent</span>';
+          else if (t.ownStatus === 'late') ownPill = '<span class="att-a-pill" style="background:#fef9c3;color:#b45309;">Late</span>';
+          else ownPill = '<span class="att-a-pill" style="background:#f1f5f9;color:#64748b;">Pending</span>';
+
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><strong>${t.teacherName}</strong></td>
             <td style="color:var(--muted);font-size:.82rem;">${t.teacherEmail}</td>
+            <td>${ownPill}</td>
             <td style="text-align:center;">${t.totalStudents}</td>
             <td style="text-align:center;">${t.studentsMarked}</td>
             <td>${pill}</td>`;
@@ -1815,12 +1830,17 @@
         const allRows = records.map(r => {
           const map = { present: 'Present', absent: 'Absent', late: 'Late' };
           const cls = { present: 'att-a-pill-present', absent: 'att-a-pill-absent', late: 'att-a-pill-late' };
-          return `<tr><td>${r.date}</td><td style="color:var(--muted);">${r.topic || '\u2014'}</td><td><span class="att-a-pill ${cls[r.status]}">${map[r.status]}</span></td></tr>`;
+          return `<tr><td>${r.date}</td><td>${r.teacher ? r.teacher.name : '\\u2014'}</td><td style="color:var(--muted);">${r.topic || '\\u2014'}</td><td><span class="att-a-pill ${cls[r.status]}">${map[r.status]}</span></td></tr>`;
         }).join('');
 
         card.innerHTML = `
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
-            <h3 style="margin:0;">${student.name}</h3>${rangeLabel}
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <h3 style="margin:0;">${student.name}</h3>${rangeLabel}
+            </div>
+            <button class="button-secondary" onclick="window.print()" style="font-size:0.8rem;padding:6px 12px;display:flex;align-items:center;gap:4px;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Export PDF
+            </button>
           </div>
           <p style="margin:0 0 20px;color:var(--muted);font-size:.85rem;">${student.email} &mdash; ${total} session(s) in selected period</p>
 
@@ -1831,7 +1851,7 @@
           <h4 style="margin:0 0 10px;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;">All Sessions (${records.length})</h4>
           <div style="overflow-x:auto;">
             <table class="att-a-table">
-              <thead><tr><th>Date</th><th>Topic</th><th>Status</th></tr></thead>
+              <thead><tr><th>Date</th><th>Teacher</th><th>Topic</th><th>Status</th></tr></thead>
               <tbody>${allRows}</tbody>
             </table>
           </div>` : '<p class="note">No sessions recorded for this period.</p>'}
