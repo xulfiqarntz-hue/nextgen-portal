@@ -153,18 +153,11 @@
         }
         
         // Fetch real system users
-        const [tutorsRes, studentsRes] = await Promise.all([
-          fetch('/api/users/tutors', { headers: { 'Authorization': 'Bearer ' + token } }),
-          fetch('/api/users/students', { headers: { 'Authorization': 'Bearer ' + token } })
-        ]);
-        
-        if (tutorsRes.ok) {
-          const tutors = await tutorsRes.json();
-          data.teachers = tutors.map(t => ({ id: t._id, name: t.name }));
-        }
-        if (studentsRes.ok) {
-          const students = await studentsRes.json();
-          data.students = students.map(s => ({ id: s._id, name: s.name }));
+        const usersRes = await fetch('/api/all-users', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (usersRes.ok) {
+          const { students, teachers } = await usersRes.json();
+          if (teachers) data.teachers = teachers.map(t => ({ id: t._id, name: t.name }));
+          if (students) data.students = students.map(s => ({ id: s._id, name: s.name }));
         }
         
       } catch(e) { console.error(e); }
