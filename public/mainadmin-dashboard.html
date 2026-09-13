@@ -225,13 +225,13 @@
     .att-a-date-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(56,189,248,.12); color: var(--accent); padding: 6px 12px; border-radius: 10px; font-size: .82rem; font-weight: 600; }
 
     @media print {
-      .sidebar, .att-a-filter-bar, .att-a-subtab-bar, .att-a-actions, .nav, .logout-btn, .theme-toggle { display: none !important; }
+      .sidebar, .att-a-filter-bar, .att-a-subtab-bar, .att-a-actions, .nav, .logout-btn, .theme-toggle, .topbar { display: none !important; }
       body { background: #fff; color: #000; }
       .layout { display: block !important; }
       .content { padding: 0 !important; width: 100% !important; max-width: 100% !important; }
-      .section { display: block !important; }
+      button { display: none !important; }
       .att-a-table th, .att-a-table td { color: #000; border-color: #ccc; }
-      .card { box-shadow: none; border: none; padding: 0; }
+      .card { box-shadow: none; border: none; padding: 0; margin: 0 !important; }
     }
   </style>
 </head>
@@ -599,7 +599,6 @@
                   <tr>
                     <th>Teacher</th>
                     <th>Email</th>
-                    <th>Own Status</th>
                     <th>Students</th>
                     <th>Marked</th>
                     <th>Status</th>
@@ -1477,18 +1476,11 @@
           const pill = t.submitted
             ? '<span class="att-a-pill att-a-pill-done">Submitted</span>'
             : '<span class="att-a-pill att-a-pill-pending">Pending</span>';
-          
-          let ownPill = '';
-          if (t.ownStatus === 'present') ownPill = '<span class="att-a-pill" style="background:#dcfce7;color:#15803d;">Present</span>';
-          else if (t.ownStatus === 'absent') ownPill = '<span class="att-a-pill" style="background:#fee2e2;color:#b91c1c;">Absent</span>';
-          else if (t.ownStatus === 'late') ownPill = '<span class="att-a-pill" style="background:#fef9c3;color:#b45309;">Late</span>';
-          else ownPill = '<span class="att-a-pill" style="background:#f1f5f9;color:#64748b;">Pending</span>';
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><strong>${t.teacherName}</strong></td>
             <td style="color:var(--muted);font-size:.82rem;">${t.teacherEmail}</td>
-            <td>${ownPill}</td>
             <td style="text-align:center;">${t.totalStudents}</td>
             <td style="text-align:center;">${t.studentsMarked}</td>
             <td>${pill}</td>`;

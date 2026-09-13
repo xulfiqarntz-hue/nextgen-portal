@@ -1312,21 +1312,6 @@
           <!-- ─── PANEL: MARK ATTENDANCE ─── -->
           <div class="att-panel active" id="attPanelMark">
 
-            <!-- Teacher Self Attendance -->
-            <div style="background:#fff;border-radius:18px;padding:20px;border:1.5px solid #e2e8f0;margin-bottom:20px;">
-              <div class="att-section-title" style="margin-bottom:14px;">My Attendance</div>
-              <div class="att-form-row">
-                <div class="att-form-group">
-                  <label>My Status for <span id="attMyDateDisplay">Selected Date</span></label>
-                  <div class="att-status-toggle">
-                    <button class="att-status-btn selected-present" onclick="setMyAttStatus('present')" id="myAttPresent">Present</button>
-                    <button class="att-status-btn" onclick="setMyAttStatus('absent')" id="myAttAbsent">Absent</button>
-                    <button class="att-status-btn" onclick="setMyAttStatus('late')" id="myAttLate">Late</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <!-- Session Setup -->
             <div style="background:#fff;border-radius:18px;padding:20px;border:1.5px solid #e2e8f0;">
               <div class="att-section-title" style="margin-bottom:14px;">Session Details</div>
@@ -2125,11 +2110,6 @@
       const todayISO = new Date().toISOString().slice(0, 10);
       const dateEl = document.getElementById('attDate');
       if (!dateEl.value) dateEl.value = todayISO;
-      document.getElementById('attMyDateDisplay').textContent = dateEl.value;
-
-      dateEl.addEventListener('change', (e) => {
-        document.getElementById('attMyDateDisplay').textContent = e.target.value;
-      });
     }
 
     function closeAttendance() {
@@ -2142,16 +2122,6 @@
       document.getElementById('attPanelHistory').classList.toggle('active', tab === 'history');
       document.getElementById('attTabMark').classList.toggle('active', tab === 'mark');
       document.getElementById('attTabHistory').classList.toggle('active', tab === 'history');
-    }
-
-    let myAttStatus = 'present';
-    function setMyAttStatus(status) {
-      myAttStatus = status;
-      const statusClasses = { present: 'selected-present', absent: 'selected-absent', late: 'selected-late' };
-      ['present', 'absent', 'late'].forEach(s => {
-        document.getElementById('myAtt' + s.charAt(0).toUpperCase() + s.slice(1)).className = 'att-status-btn';
-      });
-      document.getElementById('myAtt' + status.charAt(0).toUpperCase() + status.slice(1)).className = 'att-status-btn ' + statusClasses[status];
     }
 
     // ── Load students with skeleton screen ──
@@ -2400,17 +2370,6 @@
       btn.innerHTML = '<span>Submitting…</span>';
 
       try {
-        // Send teacher's own attendance first
-        await fetch('/api/attendance/teacher-self-submit', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-          },
-          body: JSON.stringify({ date, status: myAttStatus })
-        });
-
-        // Send students' attendance
         const res = await fetch('/api/attendance/submit', {
           method: 'POST',
           headers: {
@@ -2443,7 +2402,6 @@
       document.getElementById('attSkeleton').style.display = 'none';
       document.getElementById('attAddStudentPicker').style.display = 'none';
       document.getElementById('attLoadBtn').innerHTML = '<span>Load Students</span>';
-      setMyAttStatus('present');
     }
 
     // ── Toast notification ──

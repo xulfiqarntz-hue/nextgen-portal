@@ -2,7 +2,6 @@ const express = require('express');
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Timetable = require('../models/Timetable');
-const TeacherAttendance = require('../models/TeacherAttendance');
 const { verifyToken, allowRoles } = require('../middleware/auth');
 
 const router = express.Router();
@@ -65,52 +64,6 @@ router.post(
   }
 );
 
-/* ─────────────────────────────────────────────────────────────────────────
-   POST /api/attendance/teacher-self-submit
-   Teacher submits their own attendance for a session
-───────────────────────────────────────────────────────────────────────── */
-router.post(
-  '/teacher-self-submit',
-  verifyToken,
-  allowRoles('teacher'),
-  async (req, res) => {
-    try {
-      const { date, status } = req.body;
-
-      if (!date || !status) {
-        return res.status(400).json({ error: 'date and status are required.' });
-      }
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        return res.status(400).json({ error: 'date must be YYYY-MM-DD format.' });
-      }
-
-      const VALID_STATUSES = ['present', 'absent', 'late'];
-      if (!VALID_STATUSES.includes(status)) {
-        return res.status(400).json({ error: 'status must be present, absent, or late.' });
-      }
-
-      const teacherId = req.user.id;
-      const now = new Date();
-
-      await TeacherAttendance.updateOne(
-        { teacher: teacherId, date },
-        {
-          $set: {
-            status,
-            submittedAt: now,
-          }
-        },
-        { upsert: true }
-      );
-
-      res.json({
-        message: `Your attendance marked as ${status} for ${date}.`,
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
 
 /* ─────────────────────────────────────────────────────────────────────────
    GET /api/attendance/my-logs
@@ -231,20 +184,13 @@ router.get(
         submittedMap[tid].add(r.student.toString());
       });
 
-      // Fetch teacher own attendance
-      const teacherOwnAttendance = await TeacherAttendance.find({ date: targetDate }).lean();
-      const teacherStatusMap = {};
-      teacherOwnAttendance.forEach(t => {
-        teacherStatusMap[t.teacher.toString()] = t.status;
-      });
-
       const status = [];
       allTeachers.forEach((t) => {
         const tid = t._id.toString();
         const markedCount = submittedMap[tid] ? submittedMap[tid].size : 0;
-        const ownStatus = teacherStatusMap[tid] || 'pending';
+        
         // Only include if scheduled today or if they submitted attendance anyway
-        if (scheduledTeacherIds.has(tid) || markedCount > 0 || ownStatus !== 'pending') {
+        if (scheduledTeacherIds.has(tid) || markedCount > 0) {
           const totalStudents = t.assignedStudents ? t.assignedStudents.length : 0;
           status.push({
             teacherId: tid,
@@ -252,8 +198,7 @@ router.get(
             teacherEmail: t.email,
             totalStudents,
             studentsMarked: markedCount,
-            submitted: markedCount > 0 || ownStatus !== 'pending',
-            ownStatus: ownStatus
+            submitted: markedCount > 0
           });
         }
       });
