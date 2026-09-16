@@ -79,8 +79,8 @@ router.get('/admins', verifyToken, allowRoles('student', 'teacher'), async (req,
 
 router.get('/all-users', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const students = await User.find({ role: 'student' }, 'name email assignedTeachers');
-    const teachers = await User.find({ role: 'teacher' }, 'name email assignedStudents');
+    const students = await User.find({ role: 'student' }, 'name email assignedTeachers studentDetails');
+    const teachers = await User.find({ role: 'teacher' }, 'name email assignedStudents teacherDetails');
     let subadmins = [];
     if (req.user.role === 'mainadmin') {
       subadmins = await User.find({ role: 'subadmin' }, 'name email');

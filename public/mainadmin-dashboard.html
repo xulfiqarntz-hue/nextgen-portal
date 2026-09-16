@@ -490,7 +490,8 @@
         <header><h3>Generate Invoice</h3></header>
         <div class="card">
           <div class="form-grid">
-            <div class="form-group"><label>Student</label><select id="invoiceStudentSelect"></select></div>
+            <div class="form-group"><label>Student</label><select id="invoiceStudentSelect" onchange="populateInvoiceCycles()"></select></div>
+            <div class="form-group"><label>Billing Cycle</label><select id="invoiceCycleSelect"><option value="">Select Cycle</option></select></div>
             <div class="form-group"><label>Month</label><input id="invoiceMonth" placeholder="March 2026"></div>
             <div class="form-group"><label>Subject 1 Name</label><input id="invSub1Name" placeholder="e.g. Mathematics"></div>
             <div class="form-group"><label>Subject 1 Amount</label><input id="invSub1Amt" type="number" placeholder="0" min="0"></div>
@@ -539,8 +540,8 @@
         <header><h3>Generate Payslip</h3></header>
         <div class="card">
           <div class="form-grid">
-            <div class="form-group"><label>Teacher</label><select id="payslipTeacherSelect"></select></div>
-            <div class="form-group"><label>Student (Optional)</label><select id="payslipStudentSelect"><option value="">Select Student</option></select></div>
+          <div class="form-group"><label>Teacher</label><select id="payslipTeacherSelect" onchange="populatePayslipCycles()"></select></div>
+            <div class="form-group"><label>Billing Cycle</label><select id="payslipCycleSelect"><option value="">Select Cycle</option></select></div>
             <div class="form-group"><label>Salary Month</label><input id="payslipMonth" placeholder="March 2026"></div>
             <div class="form-group"><label>Bank Account No</label><input id="payslipBankAccount" placeholder="00620095011441010"></div>
             <div class="form-group"><label>Bank Name</label><input id="payslipBankName" placeholder="Al Habib Bank"></div>
@@ -561,7 +562,6 @@
             <thead>
               <tr>
                 <th>Teacher</th>
-                <th>Student</th>
                 <th>Month / Period</th>
                 <th>Absents</th>
                 <th>Lectures</th>
@@ -1215,7 +1215,7 @@
     }
 
     function populateSelects() {
-      const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect'), document.getElementById('payslipStudentSelect')];
+      const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect')];
       const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect'), document.getElementById('payslipTeacherSelect')];
       studentSelects.forEach(select => {
         select.innerHTML = '<option value="">Select student</option>';
@@ -1225,6 +1225,42 @@
         select.innerHTML = '<option value="">Select tutor</option>';
         window.tutors.forEach(t => { select.innerHTML += `<option value="${t._id}">${t.name} (${t.email})</option>`; });
       });
+    }
+
+    function populateInvoiceCycles() {
+      const studentId = document.getElementById('invoiceStudentSelect').value;
+      const cycleSelect = document.getElementById('invoiceCycleSelect');
+      cycleSelect.innerHTML = '<option value="">Select Cycle</option>';
+      if (!studentId) return;
+      const student = window.students.find(s => s._id === studentId);
+      if (student && student.studentDetails) {
+        const uniqueDates = [...new Set(student.studentDetails.map(d => {
+          if (!d.joiningDate) return null;
+          const dt = new Date(d.joiningDate);
+          return isNaN(dt.getTime()) ? null : dt.getDate();
+        }).filter(Boolean))];
+        uniqueDates.forEach(date => {
+          cycleSelect.innerHTML += `<option value="${date}">${date}th of the month</option>`;
+        });
+      }
+    }
+
+    function populatePayslipCycles() {
+      const teacherId = document.getElementById('payslipTeacherSelect').value;
+      const cycleSelect = document.getElementById('payslipCycleSelect');
+      cycleSelect.innerHTML = '<option value="">Select Cycle</option>';
+      if (!teacherId) return;
+      const teacher = window.tutors.find(t => t._id === teacherId);
+      if (teacher && teacher.teacherDetails) {
+        const uniqueDates = [...new Set(teacher.teacherDetails.map(d => {
+          if (!d.startDate) return null;
+          const dt = new Date(d.startDate);
+          return isNaN(dt.getTime()) ? null : dt.getDate();
+        }).filter(Boolean))];
+        uniqueDates.forEach(date => {
+          cycleSelect.innerHTML += `<option value="${date}">${date}th of the month</option>`;
+        });
+      }
     }
 
     async function loadInvoices() {
@@ -1344,6 +1380,7 @@
     async function createInvoice() {
       
       const studentId = document.getElementById('invoiceStudentSelect').value;
+      const cycleDate = document.getElementById('invoiceCycleSelect').value;
       const teacherId = null;
       const month = document.getElementById('invoiceMonth').value.trim();
       
@@ -1367,23 +1404,17 @@
       const msgEl = document.getElementById('invoiceMsg');
 
       msgEl.innerText = '';
-      if (!studentId || !month || subjects.length === 0) {
-        msgEl.innerText = 'Student, month, and at least one subject with amount are required.';
+      if (!studentId || !month || subjects.length === 0 || !cycleDate) {
+        msgEl.innerText = 'Student, cycle, month, and at least one subject with amount are required.';
         return;
       }
       
       try {
         let billingPeriodStart = null;
         let billingPeriodEnd = null;
-        const student = window.students.find(s => s._id === studentId);
-        if (student && student.studentDetails && student.studentDetails.length > 0) {
-           const jDate = new Date(student.studentDetails[0].joiningDate);
-           if (!isNaN(jDate.getTime())) {
-             const now = new Date();
-             billingPeriodStart = new Date(now.getFullYear(), now.getMonth(), jDate.getDate());
-             billingPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, jDate.getDate());
-           }
-        }
+        const now = new Date();
+        billingPeriodStart = new Date(now.getFullYear(), now.getMonth(), parseInt(cycleDate), 0, 0, 0);
+        billingPeriodEnd = new Date(now.getFullYear(), now.getMonth(), parseInt(cycleDate), 23, 59, 59);
         
         const payload = { studentId, teacherId, month, subjects, discount, arrears, bankAccountNo, bankName, ibanNo, accountTitle, className, billingPeriodStart, billingPeriodEnd };
         console.log('Invoice payload:', payload);
@@ -1421,6 +1452,7 @@
 
     function clearInvoiceForm() {
       document.getElementById('invoiceStudentSelect').value = '';
+      document.getElementById('invoiceCycleSelect').value = '';
       document.getElementById('invoiceMonth').value = '';
       for (let i = 1; i <= 4; i++) {
         document.getElementById('invSub' + i + 'Name').value = '';
@@ -1479,11 +1511,9 @@
           '<span style="background:var(--success); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75rem; cursor:pointer;" onclick="togglePayslipStatus(\''+ps._id+'\', \'unpaid\')">Paid</span>' : 
           '<span style="background:var(--danger); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75rem; cursor:pointer;" onclick="togglePayslipStatus(\''+ps._id+'\', \'paid\')">Unpaid</span>';
 
-        const studentName = ps.student ? ps.student.name : '<span style="color:var(--muted)">N/A</span>';
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${ps.teacher?.name || 'N/A'}</td>
-          <td>${studentName}</td>
           <td>${periodStr}</td>
           <td>${ps.noOfAbsents || 0}</td>
           <td>${ps.noOfLectures || 0}</td>
@@ -1510,7 +1540,7 @@
 
     async function createPayslip() {
       const teacherId = document.getElementById('payslipTeacherSelect').value;
-      const studentId = document.getElementById('payslipStudentSelect').value;
+      const cycleDate = document.getElementById('payslipCycleSelect').value;
       const month = document.getElementById('payslipMonth').value.trim();
       const bankAccountNo = document.getElementById('payslipBankAccount').value.trim();
       const bankName = document.getElementById('payslipBankName').value.trim();
@@ -1522,26 +1552,19 @@
       const msgEl = document.getElementById('payslipMsg');
       msgEl.innerText = '';
       
-      if (!teacherId || !month || amount === '') {
-        msgEl.innerText = 'Teacher, month, and amount are required.';
+      if (!teacherId || !month || amount === '' || !cycleDate) {
+        msgEl.innerText = 'Teacher, cycle, month, and amount are required.';
         return;
       }
       
       try {
         let billingPeriodStart = null;
         let billingPeriodEnd = null;
-        const teacher = window.tutors.find(t => t._id === teacherId);
-        if (teacher && teacher.teacherDetails && teacher.teacherDetails.length > 0) {
-           const sDate = new Date(teacher.teacherDetails[0].startDate);
-           if (!isNaN(sDate.getTime())) {
-             const now = new Date();
-             // Teacher pay is after completion of month, so period is previous month to current month
-             billingPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, sDate.getDate());
-             billingPeriodEnd = new Date(now.getFullYear(), now.getMonth(), sDate.getDate());
-           }
-        }
+        const now = new Date();
+        billingPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, parseInt(cycleDate), 0, 0, 0);
+        billingPeriodEnd = new Date(now.getFullYear(), now.getMonth(), parseInt(cycleDate), 23, 59, 59);
         
-        const payload = { teacherId, studentId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions, billingPeriodStart, billingPeriodEnd };
+        const payload = { teacherId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions, billingPeriodStart, billingPeriodEnd };
         const res = await fetch('/api/payslips/create', {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify(payload)
@@ -1564,7 +1587,7 @@
 
     function clearPayslipForm() {
       document.getElementById('payslipTeacherSelect').value = '';
-      document.getElementById('payslipStudentSelect').value = '';
+      document.getElementById('payslipCycleSelect').value = '';
       document.getElementById('payslipMonth').value = '';
       document.getElementById('payslipBankAccount').value = '';
       document.getElementById('payslipBankName').value = '';

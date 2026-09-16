@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
     const unpaidInvoices = await Invoice.find({ status: 'unpaid' }).populate('student', 'name email').populate('teacher', 'name email').sort({ createdAt: -1 });
-    const unpaidPayslips = await Payslip.find({ status: 'unpaid' }).populate('teacher', 'name email').populate('student', 'name email').sort({ createdAt: -1 });
+    const unpaidPayslips = await Payslip.find({ status: 'unpaid' }).populate('teacher', 'name email').sort({ createdAt: -1 });
     
     // Logic for finding ungenerated invoices/payslips
     const now = new Date();
@@ -25,20 +25,36 @@ router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin')
     // Check students
     for (const student of students) {
       if (student.studentDetails && student.studentDetails.length > 0) {
-        // Find if any invoice was created this month, or covers this month
-        const invExists = await Invoice.findOne({ 
-          student: student._id, 
-          $or: [
-            { createdAt: { $gte: startOfMonth, $lte: endOfMonth } },
-            { billingPeriodStart: { $gte: startOfMonth, $lte: endOfMonth } }
-          ]
-        });
-        if (!invExists) {
-          ungeneratedInvoices.push({
-            studentId: student._id,
-            studentName: student.name,
-            details: student.studentDetails
-          });
+        const groups = {};
+        for (const detail of student.studentDetails) {
+           if (!detail.joiningDate) continue;
+           const dt = new Date(detail.joiningDate);
+           if (isNaN(dt.getTime())) continue;
+           const key = dt.getDate();
+           if (!groups[key]) groups[key] = { date: detail.joiningDate, details: [] };
+           groups[key].details.push(detail);
+        }
+        
+        for (const key in groups) {
+           const group = groups[key];
+           const cycleDate = new Date(group.date);
+           const startOfDay = new Date(now.getFullYear(), now.getMonth(), cycleDate.getDate(), 0, 0, 0);
+           const endOfDay = new Date(now.getFullYear(), now.getMonth(), cycleDate.getDate(), 23, 59, 59, 999);
+           
+           const invExists = await Invoice.findOne({ 
+             student: student._id, 
+             $or: [
+               { billingPeriodStart: { $gte: startOfDay, $lte: endOfDay } },
+               { createdAt: { $gte: startOfMonth, $lte: endOfMonth }, billingPeriodStart: null }
+             ]
+           });
+           if (!invExists) {
+             ungeneratedInvoices.push({
+               studentId: student._id,
+               studentName: `${student.name} (Cycle: ${cycleDate.getDate()}th)`,
+               details: group.details
+             });
+           }
         }
       }
     }
@@ -46,26 +62,37 @@ router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin')
     // Check teachers
     for (const teacher of teachers) {
       if (teacher.teacherDetails && teacher.teacherDetails.length > 0) {
-        // Teachers now get a payslip per student they teach
+        const groups = {};
         for (const detail of teacher.teacherDetails) {
-          if (!detail.studentId) continue;
-          const slipExists = await Payslip.findOne({ 
-            teacher: teacher._id,
-            student: detail.studentId,
-            $or: [
-              { createdAt: { $gte: startOfMonth, $lte: endOfMonth } },
-              { billingPeriodStart: { $gte: startOfMonth, $lte: endOfMonth } }
-            ]
-          });
-          if (!slipExists) {
-            const studentObj = students.find(s => s._id.toString() === detail.studentId.toString());
-            const studentName = studentObj ? studentObj.name : 'Unknown Student';
-            ungeneratedPayslips.push({
-              teacherId: teacher._id,
-              teacherName: teacher.name + ' - ' + studentName, // Merge names for simple display
-              details: [detail]
-            });
-          }
+           if (!detail.startDate) continue;
+           const dt = new Date(detail.startDate);
+           if (isNaN(dt.getTime())) continue;
+           const key = dt.getDate();
+           if (!groups[key]) groups[key] = { date: detail.startDate, details: [] };
+           groups[key].details.push(detail);
+        }
+
+        for (const key in groups) {
+           const group = groups[key];
+           const cycleDate = new Date(group.date);
+           const startOfDay = new Date(now.getFullYear(), now.getMonth() - 1, cycleDate.getDate(), 0, 0, 0);
+           const endOfDay = new Date(now.getFullYear(), now.getMonth() - 1, cycleDate.getDate(), 23, 59, 59, 999);
+           
+           const slipExists = await Payslip.findOne({ 
+             teacher: teacher._id,
+             $or: [
+               { billingPeriodStart: { $gte: startOfDay, $lte: endOfDay } },
+               { createdAt: { $gte: startOfMonth, $lte: endOfMonth }, billingPeriodStart: null }
+             ]
+           });
+           
+           if (!slipExists) {
+             ungeneratedPayslips.push({
+               teacherId: teacher._id,
+               teacherName: `${teacher.name} (Cycle: ${cycleDate.getDate()}th)`,
+               details: group.details
+             });
+           }
         }
       }
     }
