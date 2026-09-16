@@ -93,7 +93,7 @@ router.put('/profile', verifyToken, async (req, res) => {
 // Admin/Subadmin edit user
 router.put('/edit/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, studentDetails, teacherDetails } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -113,6 +113,9 @@ router.put('/edit/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async 
       const hashedPassword = await bcrypt.hash(password, 10);
       user.password = hashedPassword;
     }
+    
+    if (studentDetails !== undefined) user.studentDetails = studentDetails;
+    if (teacherDetails !== undefined) user.teacherDetails = teacherDetails;
 
     await user.save();
     res.json({ message: 'User updated successfully' });

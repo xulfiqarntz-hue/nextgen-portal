@@ -296,6 +296,29 @@
         </div>
       </section>
 
+      <!-- Billing Overview -->
+      <section id="billingOverviewSection" class="section active" style="margin-top:20px;">
+        <header><h3>Billing Overview (Current Month)</h3></header>
+        <div class="panel-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+          <div class="card" style="border-top: 4px solid var(--danger);">
+            <h4 style="color:var(--danger); margin-bottom:10px;">Unpaid Invoices</h4>
+            <div id="unpaidInvoicesList" style="max-height:200px; overflow-y:auto; font-size:0.9rem;">Loading...</div>
+          </div>
+          <div class="card" style="border-top: 4px solid var(--danger);">
+            <h4 style="color:var(--danger); margin-bottom:10px;">Unpaid Payslips</h4>
+            <div id="unpaidPayslipsList" style="max-height:200px; overflow-y:auto; font-size:0.9rem;">Loading...</div>
+          </div>
+          <div class="card" style="border-top: 4px solid var(--f59e0b);">
+            <h4 style="color:var(--f59e0b); margin-bottom:10px;">Ungenerated Invoices</h4>
+            <div id="ungeneratedInvoicesList" style="max-height:200px; overflow-y:auto; font-size:0.9rem;">Loading...</div>
+          </div>
+          <div class="card" style="border-top: 4px solid var(--f59e0b);">
+            <h4 style="color:var(--f59e0b); margin-bottom:10px;">Ungenerated Payslips</h4>
+            <div id="ungeneratedPayslipsList" style="max-height:200px; overflow-y:auto; font-size:0.9rem;">Loading...</div>
+          </div>
+        </div>
+      </section>
+
       <section id="students" class="section">
         <header><h3>Students</h3></header>
         <div class="card">
@@ -439,12 +462,13 @@
             <thead>
               <tr>
                 <th>Student</th>
-                <th>Month</th>
+                <th>Month / Period</th>
                 <th>Class</th>
                 <th>Payment</th>
                 <th>Discount</th>
                 <th>Arrears</th>
                 <th>Total</th>
+                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -478,12 +502,13 @@
             <thead>
               <tr>
                 <th>Teacher</th>
-                <th>Month</th>
+                <th>Month / Period</th>
                 <th>Absents</th>
                 <th>Lectures</th>
                 <th>Amount</th>
                 <th>Deductions</th>
                 <th>Net Salary</th>
+                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -595,6 +620,14 @@
           <label style="display:block; margin-bottom:5px; color:var(--text);">New Password (leave blank to keep current)</label>
           <input type="password" id="editUserPassword" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-color);">
         </div>
+        
+        <!-- Details Editor (Student/Teacher Specific) -->
+        <div id="editUserDetailsSection" style="margin-bottom: 15px; display:none; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+          <h4 style="margin-bottom:10px;">Role Specific Details (Subjects, Dates, Packages)</h4>
+          <div id="detailsList" style="margin-bottom:10px;"></div>
+          <button type="button" class="button-secondary" onclick="addDetailRow()" style="width:100%; padding:8px;">+ Add Detail</button>
+        </div>
+
         <button type="submit" class="button-primary" style="width:100%; padding:12px; margin-top:10px;">Save Changes</button>
       </form>
     </div>
@@ -655,6 +688,52 @@
       loadInvoices();
       loadPayslips();
       loadDashboardStats();
+      loadDashboardBillingOverview();
+    }
+
+    async function loadDashboardBillingOverview() {
+      try {
+        const res = await fetch('/api/dashboard/billing-overview', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        
+        const uiList = document.getElementById('unpaidInvoicesList');
+        if (uiList) {
+          uiList.innerHTML = '';
+          data.unpaidInvoices?.forEach(inv => {
+            uiList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border);">${inv.student?.name} - ${inv.month} (${inv.total} Rs)</div>`;
+          });
+          if (!data.unpaidInvoices?.length) uiList.innerHTML = '<div style="color:var(--muted)">All paid</div>';
+        }
+        
+        const upList = document.getElementById('unpaidPayslipsList');
+        if (upList) {
+          upList.innerHTML = '';
+          data.unpaidPayslips?.forEach(ps => {
+            upList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border);">${ps.teacher?.name} - ${ps.month} (${ps.totalSalary} Rs)</div>`;
+          });
+          if (!data.unpaidPayslips?.length) upList.innerHTML = '<div style="color:var(--muted)">All paid</div>';
+        }
+        
+        const ugiList = document.getElementById('ungeneratedInvoicesList');
+        if (ugiList) {
+          ugiList.innerHTML = '';
+          data.ungeneratedInvoices?.forEach(item => {
+            ugiList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border);">${item.studentName}</div>`;
+          });
+          if (!data.ungeneratedInvoices?.length) ugiList.innerHTML = '<div style="color:var(--muted)">All up to date</div>';
+        }
+        
+        const ugpList = document.getElementById('ungeneratedPayslipsList');
+        if (ugpList) {
+          ugpList.innerHTML = '';
+          data.ungeneratedPayslips?.forEach(item => {
+            ugpList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border);">${item.teacherName}</div>`;
+          });
+          if (!data.ungeneratedPayslips?.length) ugpList.innerHTML = '<div style="color:var(--muted)">All up to date</div>';
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     async function loadDashboardStats() {
@@ -714,12 +793,62 @@
       if (tab === 'attendance') { loadDailyStatus(); populateAttTeacherFilter(); populateAttStudentSelect(); }
     }
 
-    function openEditModal(id, name, email) {
+    let currentUserRoleForEdit = '';
+    
+    function openEditModal(id, name, email, role) {
       document.getElementById('editUserId').value = id;
       document.getElementById('editUserName').value = name;
       document.getElementById('editUserEmail').value = email;
       document.getElementById('editUserPassword').value = '';
+      currentUserRoleForEdit = role;
+      
+      const detailsSection = document.getElementById('editUserDetailsSection');
+      const detailsList = document.getElementById('detailsList');
+      detailsList.innerHTML = '';
+      
+      if (role === 'student' || role === 'teacher') {
+        detailsSection.style.display = 'block';
+        let userArr = role === 'student' ? window.students : window.tutors;
+        let user = userArr.find(u => u._id === id);
+        let details = role === 'student' ? (user.studentDetails || []) : (user.teacherDetails || []);
+        
+        details.forEach(d => addDetailRow(d));
+      } else {
+        detailsSection.style.display = 'none';
+      }
+      
       document.getElementById('editUserModal').classList.add('active');
+    }
+
+    function addDetailRow(detail = {}) {
+      const isStudent = currentUserRoleForEdit === 'student';
+      const container = document.createElement('div');
+      container.style.display = 'flex';
+      container.style.gap = '10px';
+      container.style.marginBottom = '10px';
+      container.style.alignItems = 'center';
+      
+      let dateLabel = isStudent ? 'Joining Date' : 'Start Date';
+      let dateVal = isStudent ? detail.joiningDate : detail.startDate;
+      if (dateVal) dateVal = new Date(dateVal).toISOString().split('T')[0];
+      
+      let teacherStudentSelect = '';
+      if (!isStudent) {
+        let options = '<option value="">Select Student</option>';
+        window.students.forEach(s => {
+          options += `<option value="${s._id}" ${detail.studentId === s._id ? 'selected' : ''}>${s.name}</option>`;
+        });
+        teacherStudentSelect = `<select class="detail-student" style="flex:1; padding:5px;">${options}</select>`;
+      }
+      
+      container.innerHTML = `
+        <input type="text" class="detail-subject" placeholder="Subject Name" value="${detail.subjectName || ''}" style="flex:1; padding:5px;">
+        <input type="date" class="detail-date" title="${dateLabel}" value="${dateVal || ''}" style="flex:1; padding:5px;">
+        <input type="number" class="detail-package" placeholder="Package Fee (Rs)" value="${detail.packageFee || ''}" style="flex:1; padding:5px;">
+        ${teacherStudentSelect}
+        <button type="button" class="button-secondary" onclick="this.parentElement.remove()" style="padding:5px; background:var(--danger); color:#fff;">X</button>
+      `;
+      document.getElementById('detailsList').appendChild(container);
     }
 
     function closeEditModal() {
@@ -735,6 +864,27 @@
 
       const body = { name, email };
       if (password) body.password = password;
+
+      if (currentUserRoleForEdit === 'student' || currentUserRoleForEdit === 'teacher') {
+        const details = [];
+        const rows = document.getElementById('detailsList').children;
+        for (let row of rows) {
+          const subjectName = row.querySelector('.detail-subject').value;
+          const dateVal = row.querySelector('.detail-date').value;
+          const packageFee = row.querySelector('.detail-package').value;
+          
+          let obj = { subjectName, packageFee: Number(packageFee) };
+          if (currentUserRoleForEdit === 'student') {
+            obj.joiningDate = dateVal;
+          } else {
+            obj.startDate = dateVal;
+            obj.studentId = row.querySelector('.detail-student').value;
+          }
+          details.push(obj);
+        }
+        if (currentUserRoleForEdit === 'student') body.studentDetails = details;
+        else body.teacherDetails = details;
+      }
 
       try {
         const res = await fetch('/api/auth/edit/' + id, {
@@ -769,7 +919,7 @@
           <td>${s.name}</td>
           <td>${s.email}</td>
           <td>${canDelete ? `
-            <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px; background:var(--accent-strong);" onclick="openEditModal('${s._id}', '${s.name.replace(/'/g, "\\'")}', '${s.email}')">Edit</button>
+            <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px; background:var(--accent-strong);" onclick="openEditModal('${s._id}', '${s.name.replace(/'/g, "\\'")}', '${s.email}', 'student')">Edit</button>
             <button class="button-secondary" style="padding:8px 12px; font-size:0.8rem;" onclick="deleteUser('${s._id}', '${s.name.replace(/'/g, "\\'")}')">Delete</button>
           ` : ''}</td>`;
         body.appendChild(tr);
@@ -786,7 +936,7 @@
           <td>${t.name}</td>
           <td>${t.email}</td>
           <td>${canDelete ? `
-            <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px; background:var(--accent-strong);" onclick="openEditModal('${t._id}', '${t.name.replace(/'/g, "\\'")}', '${t.email}')">Edit</button>
+            <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px; background:var(--accent-strong);" onclick="openEditModal('${t._id}', '${t.name.replace(/'/g, "\\'")}', '${t.email}', 'teacher')">Edit</button>
             <button class="button-secondary" style="padding:8px 12px; font-size:0.8rem;" onclick="deleteUser('${t._id}', '${t.name.replace(/'/g, "\\'")}')">Delete</button>
           ` : ''}</td>`;
         body.appendChild(tr);
@@ -863,19 +1013,41 @@
       body.innerHTML = '';
       if (!data.invoices) return;
       data.invoices.forEach(inv => {
+        let periodStr = inv.month;
+        if (inv.billingPeriodStart && inv.billingPeriodEnd) {
+          const s = new Date(inv.billingPeriodStart).toLocaleDateString();
+          const e = new Date(inv.billingPeriodEnd).toLocaleDateString();
+          periodStr += `<br><small style="color:var(--muted)">${s} - ${e}</small>`;
+        }
+        let statusBadge = inv.status === 'paid' ? 
+          '<span style="background:var(--success); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75rem; cursor:pointer;" onclick="toggleInvoiceStatus(\''+inv._id+'\', \'unpaid\')">Paid</span>' : 
+          '<span style="background:var(--danger); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75rem; cursor:pointer;" onclick="toggleInvoiceStatus(\''+inv._id+'\', \'paid\')">Unpaid</span>';
+          
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${inv.student?.name || 'N/A'}</td>
-          <td>${inv.month}</td>
+          <td>${periodStr}</td>
           <td>${inv.className || 'N/A'}</td>
           <td>${inv.payment}</td>
           <td>${inv.discount}</td>
           <td>${inv.arrears || 0}</td>
           <td>${inv.total}</td>
+          <td>${statusBadge}</td>
           <td><button class="button-primary" onclick="downloadInvoice('${inv._id}')">Download</button>
               <button class="button-secondary" onclick="deleteInvoice('${inv._id}')" style="margin-left:8px;background:#ef4444;color:#fff;">Delete</button></td>`;
         body.appendChild(tr);
       });
+    }
+
+    async function toggleInvoiceStatus(id, newStatus) {
+      if(!confirm('Mark invoice as ' + newStatus + '?')) return;
+      await fetch('/api/invoices/update-status/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ status: newStatus })
+      });
+      loadInvoices();
+      loadDashboardBillingOverview();
     }
 
     async function createInvoice() {
@@ -909,7 +1081,19 @@
       }
       
       try {
-        const payload = { studentId, teacherId, month, subjects, discount, arrears, bankAccountNo, bankName, ibanNo, accountTitle, className };
+        let billingPeriodStart = null;
+        let billingPeriodEnd = null;
+        const student = window.students.find(s => s._id === studentId);
+        if (student && student.studentDetails && student.studentDetails.length > 0) {
+           const jDate = new Date(student.studentDetails[0].joiningDate);
+           if (!isNaN(jDate.getTime())) {
+             const now = new Date();
+             billingPeriodStart = new Date(now.getFullYear(), now.getMonth(), jDate.getDate());
+             billingPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, jDate.getDate());
+           }
+        }
+        
+        const payload = { studentId, teacherId, month, subjects, discount, arrears, bankAccountNo, bankName, ibanNo, accountTitle, className, billingPeriodStart, billingPeriodEnd };
         const res = await fetch('/api/invoices/create', {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify(payload)
@@ -981,19 +1165,41 @@
       body.innerHTML = '';
       if (!data.payslips) return;
       data.payslips.forEach(ps => {
+        let periodStr = ps.month;
+        if (ps.billingPeriodStart && ps.billingPeriodEnd) {
+          const s = new Date(ps.billingPeriodStart).toLocaleDateString();
+          const e = new Date(ps.billingPeriodEnd).toLocaleDateString();
+          periodStr += `<br><small style="color:var(--muted)">${s} - ${e}</small>`;
+        }
+        let statusBadge = ps.status === 'paid' ? 
+          '<span style="background:var(--success); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75rem; cursor:pointer;" onclick="togglePayslipStatus(\''+ps._id+'\', \'unpaid\')">Paid</span>' : 
+          '<span style="background:var(--danger); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75rem; cursor:pointer;" onclick="togglePayslipStatus(\''+ps._id+'\', \'paid\')">Unpaid</span>';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${ps.teacher?.name || 'N/A'}</td>
-          <td>${ps.month}</td>
+          <td>${periodStr}</td>
           <td>${ps.noOfAbsents || 0}</td>
           <td>${ps.noOfLectures || 0}</td>
           <td>${ps.amount}</td>
           <td>${ps.deductions}</td>
           <td>${ps.totalSalary}</td>
+          <td>${statusBadge}</td>
           <td><button class="button-primary" onclick="downloadPayslip('${ps._id}')">Download</button>
               <button class="button-secondary" onclick="deletePayslip('${ps._id}')" style="margin-left:8px;background:#ef4444;color:#fff;">Delete</button></td>`;
         body.appendChild(tr);
       });
+    }
+
+    async function togglePayslipStatus(id, newStatus) {
+      if(!confirm('Mark payslip as ' + newStatus + '?')) return;
+      await fetch('/api/payslips/update-status/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ status: newStatus })
+      });
+      loadPayslips();
+      loadDashboardBillingOverview();
     }
 
     async function createPayslip() {
@@ -1015,7 +1221,20 @@
       }
       
       try {
-        const payload = { teacherId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions };
+        let billingPeriodStart = null;
+        let billingPeriodEnd = null;
+        const teacher = window.tutors.find(t => t._id === teacherId);
+        if (teacher && teacher.teacherDetails && teacher.teacherDetails.length > 0) {
+           const sDate = new Date(teacher.teacherDetails[0].startDate);
+           if (!isNaN(sDate.getTime())) {
+             const now = new Date();
+             // Teacher pay is after completion of month, so period is previous month to current month
+             billingPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, sDate.getDate());
+             billingPeriodEnd = new Date(now.getFullYear(), now.getMonth(), sDate.getDate());
+           }
+        }
+        
+        const payload = { teacherId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions, billingPeriodStart, billingPeriodEnd };
         const res = await fetch('/api/payslips/create', {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify(payload)

@@ -12,7 +12,7 @@ router.get('/dummy', (req, res) => {
 
 router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const { studentId, teacherId, month, payment, subjects, discount, arrears, bankAccountNo, bankName, ibanNo, accountTitle, className } = req.body;
+    const { studentId, teacherId, month, payment, subjects, discount, arrears, bankAccountNo, bankName, ibanNo, accountTitle, className, billingPeriodStart, billingPeriodEnd, status } = req.body;
     console.log('Invoice create request - className:', className);
     if (!studentId || !month) {
       return res.status(400).json({ error: 'Student and month are required.' });
@@ -61,7 +61,10 @@ router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (
       accountTitle: accountTitle || '',
       className: className || '',
       total,
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      billingPeriodStart: billingPeriodStart ? new Date(billingPeriodStart) : undefined,
+      billingPeriodEnd: billingPeriodEnd ? new Date(billingPeriodEnd) : undefined,
+      status: status || 'unpaid'
     });
     await invoice.save();
 
@@ -98,6 +101,20 @@ router.delete('/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (r
     const inv = await Invoice.findByIdAndDelete(req.params.id);
     if (!inv) return res.status(404).json({ error: 'Invoice not found.' });
     res.json({ message: 'Invoice deleted.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update invoice status
+router.put('/update-status/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const inv = await Invoice.findById(req.params.id);
+    if (!inv) return res.status(404).json({ error: 'Invoice not found.' });
+    inv.status = status;
+    await inv.save();
+    res.json({ message: 'Invoice status updated.', invoice: inv });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

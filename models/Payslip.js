@@ -11,7 +11,10 @@ const payslipSchema = new mongoose.Schema({
   deductions: { type: Number, default: 0 },
   totalSalary: { type: Number, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['paid', 'unpaid'], default: 'unpaid' },
+  billingPeriodStart: { type: Date },
+  billingPeriodEnd: { type: Date }
 });
 
 module.exports = mongoose.model('Payslip', payslipSchema);

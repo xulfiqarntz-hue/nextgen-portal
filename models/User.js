@@ -10,7 +10,18 @@ const userSchema = new mongoose.Schema({
     required: true
   },
   assignedTeachers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  studentDetails: [{
+    subjectName: { type: String },
+    joiningDate: { type: Date },
+    packageFee: { type: Number }
+  }],
+  teacherDetails: [{
+    subjectName: { type: String },
+    startDate: { type: Date },
+    studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    packageFee: { type: Number }
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

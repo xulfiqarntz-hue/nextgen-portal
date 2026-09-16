@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const { teacherId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions } = req.body;
+    const { teacherId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions, billingPeriodStart, billingPeriodEnd, status } = req.body;
     
     if (!teacherId || !month || amount === undefined) {
       return res.status(400).json({ error: 'Teacher, month, and amount are required.' });
@@ -35,7 +35,10 @@ router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (
       amount: amountNumber,
       deductions: deductionsNumber,
       totalSalary,
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      billingPeriodStart: billingPeriodStart ? new Date(billingPeriodStart) : undefined,
+      billingPeriodEnd: billingPeriodEnd ? new Date(billingPeriodEnd) : undefined,
+      status: status || 'unpaid'
     });
     
     await payslip.save();
@@ -70,6 +73,20 @@ router.delete('/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (r
     const payslip = await Payslip.findByIdAndDelete(req.params.id);
     if (!payslip) return res.status(404).json({ error: 'Payslip not found.' });
     res.json({ message: 'Payslip deleted.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update payslip status
+router.put('/update-status/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const payslip = await Payslip.findById(req.params.id);
+    if (!payslip) return res.status(404).json({ error: 'Payslip not found.' });
+    payslip.status = status;
+    await payslip.save();
+    res.json({ message: 'Payslip status updated.', payslip });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
