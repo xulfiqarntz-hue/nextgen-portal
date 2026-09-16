@@ -1362,6 +1362,9 @@
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
         bubble.innerText = m.text;
+        bubble.innerHTML = bubble.innerHTML.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">$1</a>');
+        const dateStr = new Date(m.createdAt).toLocaleString();
+        bubble.innerHTML += `<div style="font-size: 0.7rem; opacity: 0.7; margin-top: 5px; text-align: right;">${dateStr}</div>`;
         row.appendChild(bubble);
         box.appendChild(row);
       });
