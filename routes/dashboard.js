@@ -38,8 +38,9 @@ router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin')
         for (const key in groups) {
            const group = groups[key];
            const cycleDate = new Date(group.date);
-           const startOfDay = new Date(now.getFullYear(), now.getMonth(), cycleDate.getDate(), 0, 0, 0);
-           const endOfDay = new Date(now.getFullYear(), now.getMonth(), cycleDate.getDate(), 23, 59, 59, 999);
+           // Timezone safe window: +/- 1.5 days around the expected cycle
+           const startOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth(), cycleDate.getDate() - 1, 0, 0, 0));
+           const endOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth(), cycleDate.getDate() + 1, 23, 59, 59, 999));
            
            const invExists = await Invoice.findOne({ 
              student: student._id, 
@@ -75,8 +76,9 @@ router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin')
         for (const key in groups) {
            const group = groups[key];
            const cycleDate = new Date(group.date);
-           const startOfDay = new Date(now.getFullYear(), now.getMonth() - 1, cycleDate.getDate(), 0, 0, 0);
-           const endOfDay = new Date(now.getFullYear(), now.getMonth() - 1, cycleDate.getDate(), 23, 59, 59, 999);
+           // Timezone safe window: +/- 1.5 days around the expected cycle
+           const startOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1, cycleDate.getDate() - 1, 0, 0, 0));
+           const endOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1, cycleDate.getDate() + 1, 23, 59, 59, 999));
            
            const slipExists = await Payslip.findOne({ 
              teacher: teacher._id,
