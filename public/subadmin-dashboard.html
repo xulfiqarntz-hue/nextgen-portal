@@ -491,6 +491,7 @@
         <div class="card">
           <div class="form-grid">
             <div class="form-group"><label>Teacher</label><select id="payslipTeacherSelect"></select></div>
+            <div class="form-group"><label>Student (Optional)</label><select id="payslipStudentSelect"><option value="">Select Student</option></select></div>
             <div class="form-group"><label>Salary Month</label><input id="payslipMonth" placeholder="March 2026"></div>
             <div class="form-group"><label>Bank Account No</label><input id="payslipBankAccount" placeholder="00620095011441010"></div>
             <div class="form-group"><label>Bank Name</label><input id="payslipBankName" placeholder="Al Habib Bank"></div>
@@ -511,6 +512,7 @@
             <thead>
               <tr>
                 <th>Teacher</th>
+                <th>Student</th>
                 <th>Month / Period</th>
                 <th>Absents</th>
                 <th>Lectures</th>
@@ -973,7 +975,7 @@
     }
 
     function populateSelects() {
-      const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect')];
+      const studentSelects = [document.getElementById('assignStudentSelect'), document.getElementById('chatStudentSelect'), document.getElementById('invoiceStudentSelect'), document.getElementById('payslipStudentSelect')];
       const tutorSelects = [document.getElementById('assignTutorSelect'), document.getElementById('chatTutorSelect'), document.getElementById('payslipTeacherSelect')];
       studentSelects.forEach(select => {
         select.innerHTML = '<option value="">Select student</option>';
@@ -1204,9 +1206,11 @@
           '<span style="background:var(--success); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75rem; cursor:pointer;" onclick="togglePayslipStatus(\''+ps._id+'\', \'unpaid\')">Paid</span>' : 
           '<span style="background:var(--danger); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75rem; cursor:pointer;" onclick="togglePayslipStatus(\''+ps._id+'\', \'paid\')">Unpaid</span>';
 
+        const studentName = ps.student ? ps.student.name : '<span style="color:var(--muted)">N/A</span>';
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${ps.teacher?.name || 'N/A'}</td>
+          <td>${studentName}</td>
           <td>${periodStr}</td>
           <td>${ps.noOfAbsents || 0}</td>
           <td>${ps.noOfLectures || 0}</td>
@@ -1233,6 +1237,7 @@
 
     async function createPayslip() {
       const teacherId = document.getElementById('payslipTeacherSelect').value;
+      const studentId = document.getElementById('payslipStudentSelect').value;
       const month = document.getElementById('payslipMonth').value.trim();
       const bankAccountNo = document.getElementById('payslipBankAccount').value.trim();
       const bankName = document.getElementById('payslipBankName').value.trim();
@@ -1263,7 +1268,7 @@
            }
         }
         
-        const payload = { teacherId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions, billingPeriodStart, billingPeriodEnd };
+        const payload = { teacherId, studentId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions, billingPeriodStart, billingPeriodEnd };
         const res = await fetch('/api/payslips/create', {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify(payload)
@@ -1286,6 +1291,7 @@
 
     function clearPayslipForm() {
       document.getElementById('payslipTeacherSelect').value = '';
+      document.getElementById('payslipStudentSelect').value = '';
       document.getElementById('payslipMonth').value = '';
       document.getElementById('payslipBankAccount').value = '';
       document.getElementById('payslipBankName').value = '';

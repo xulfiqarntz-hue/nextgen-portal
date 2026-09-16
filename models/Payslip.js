@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const payslipSchema = new mongoose.Schema({
   teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  student: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   month: { type: String, required: true },
   bankAccountNo: { type: String },
   bankName: { type: String },

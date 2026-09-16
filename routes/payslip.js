@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const { teacherId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions, billingPeriodStart, billingPeriodEnd, status } = req.body;
+    const { teacherId, studentId, month, bankAccountNo, bankName, noOfAbsents, noOfLectures, amount, deductions, billingPeriodStart, billingPeriodEnd, status } = req.body;
     
     if (!teacherId || !month || amount === undefined) {
       return res.status(400).json({ error: 'Teacher, month, and amount are required.' });
@@ -27,6 +27,7 @@ router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (
 
     const payslip = new Payslip({
       teacher: teacher._id,
+      student: studentId || undefined,
       month,
       bankAccountNo: bankAccountNo || '',
       bankName: bankName || '',
@@ -51,7 +52,7 @@ router.post('/create', verifyToken, allowRoles('mainadmin', 'subadmin'), async (
 
 router.get('/list', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const payslips = await Payslip.find().populate('teacher', 'name email').sort({ createdAt: -1 });
+    const payslips = await Payslip.find().populate('teacher', 'name email').populate('student', 'name email').sort({ createdAt: -1 });
     res.json({ payslips });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -60,7 +61,7 @@ router.get('/list', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req
 
 router.get('/get/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const payslip = await Payslip.findById(req.params.id).populate('teacher', 'name email');
+    const payslip = await Payslip.findById(req.params.id).populate('teacher', 'name email').populate('student', 'name email');
     if (!payslip) return res.status(404).json({ error: 'Payslip not found.' });
     res.json({ payslip });
   } catch (err) {
