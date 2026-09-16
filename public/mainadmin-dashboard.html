@@ -39,7 +39,7 @@
     /* ── MODAL STYLES ── */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; z-index: 1000; }
     .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
-    .modal-content { background: var(--card-bg); padding: 24px; border-radius: 20px; width: 90%; max-width: 500px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .modal-content { background: var(--card-bg); padding: 24px; border-radius: 20px; width: 90%; max-width: 650px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .modal-header h3 { margin: 0; font-size: 1.25rem; color: var(--card-h3); }
     .modal-close { background: transparent; border: none; font-size: 1.5rem; color: var(--muted); cursor: pointer; transition: color 0.2s; }
@@ -355,7 +355,7 @@
         <header><h3>Students</h3></header>
         <div class="card">
           <table class="table">
-            <thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Details</th><th>Action</th></tr></thead>
             <tbody id="studentTableBody"></tbody>
           </table>
         </div>
@@ -396,7 +396,7 @@
         <header><h3>Tutors</h3></header>
         <div class="card">
           <table class="table">
-            <thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Details</th><th>Action</th></tr></thead>
             <tbody id="tutorTableBody"></tbody>
           </table>
         </div>
@@ -1044,6 +1044,7 @@
       const isStudent = currentUserRoleForEdit === 'student';
       const container = document.createElement('div');
       container.style.display = 'flex';
+      container.style.flexWrap = 'wrap';
       container.style.gap = '10px';
       container.style.marginBottom = '10px';
       container.style.alignItems = 'center';
@@ -1058,13 +1059,13 @@
         window.students.forEach(s => {
           options += `<option value="${s._id}" ${detail.studentId === s._id ? 'selected' : ''}>${s.name}</option>`;
         });
-        teacherStudentSelect = `<select class="detail-student" style="flex:1; padding:5px;">${options}</select>`;
+        teacherStudentSelect = `<select class="detail-student" style="flex:1; min-width:140px; padding:5px;">${options}</select>`;
       }
       
       container.innerHTML = `
-        <input type="text" class="detail-subject" placeholder="Subject Name" value="${detail.subjectName || ''}" style="flex:1; padding:5px;">
-        <input type="date" class="detail-date" title="${dateLabel}" value="${dateVal || ''}" style="flex:1; padding:5px;">
-        <input type="number" class="detail-package" placeholder="Package Fee (Rs)" value="${detail.packageFee || ''}" style="flex:1; padding:5px;">
+        <input type="text" class="detail-subject" placeholder="Subject Name" value="${detail.subjectName || ''}" style="flex:1; min-width:140px; padding:5px;">
+        <input type="date" class="detail-date" title="${dateLabel}" value="${dateVal || ''}" style="flex:1; min-width:140px; padding:5px;">
+        <input type="number" class="detail-package" placeholder="Package Fee (Rs)" value="${detail.packageFee || ''}" style="flex:1; min-width:140px; padding:5px;">
         ${teacherStudentSelect}
         <button type="button" class="button-secondary" onclick="this.parentElement.remove()" style="padding:5px; background:var(--danger); color:#fff;">X</button>
       `;
@@ -1148,9 +1149,17 @@
       body.innerHTML = '';
       window.students.forEach(s => {
         const tr = document.createElement('tr');
+        let detailsHtml = '';
+        if (s.studentDetails && s.studentDetails.length > 0) {
+          detailsHtml = s.studentDetails.map(d => `<div style="font-size:0.8rem; margin-bottom:4px;"><b>${d.subjectName}</b> (Joined: ${d.joiningDate ? new Date(d.joiningDate).toLocaleDateString() : 'N/A'}, Fee: ${d.packageFee} Rs)</div>`).join('');
+        } else {
+          detailsHtml = '<span style="color:var(--muted); font-size:0.8rem;">No details</span>';
+        }
+
         tr.innerHTML = `
           <td>${s.name}</td>
           <td>${s.email}</td>
+          <td>${detailsHtml}</td>
           <td>
             <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px;" onclick="viewStudentAssignments('${s._id}')">View Tutors</button>
             <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px; background:var(--accent-strong);" onclick="openEditModal('${s._id}', '${s.name.replace(/'/g, "\\'")}', '${s.email}', 'student')">Edit</button>
@@ -1165,9 +1174,21 @@
       body.innerHTML = '';
       window.tutors.forEach(t => {
         const tr = document.createElement('tr');
+        
+        let detailsHtml = '';
+        if (t.teacherDetails && t.teacherDetails.length > 0) {
+          detailsHtml = t.teacherDetails.map(d => {
+            const studentName = window.students.find(s => s._id === d.studentId)?.name || 'Unknown Student';
+            return `<div style="font-size:0.8rem; margin-bottom:4px;"><b>${d.subjectName}</b> with ${studentName} (Start: ${d.startDate ? new Date(d.startDate).toLocaleDateString() : 'N/A'}, Fee: ${d.packageFee} Rs)</div>`;
+          }).join('');
+        } else {
+          detailsHtml = '<span style="color:var(--muted); font-size:0.8rem;">No details</span>';
+        }
+
         tr.innerHTML = `
           <td>${t.name}</td>
           <td>${t.email}</td>
+          <td>${detailsHtml}</td>
           <td>
             <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px;" onclick="viewTutorAssignments('${t._id}')">View Students</button>
             <button class="button-primary" style="padding:8px 12px; font-size:0.8rem; margin-right:8px; background:var(--accent-strong);" onclick="openEditModal('${t._id}', '${t.name.replace(/'/g, "\\'")}', '${t.email}', 'teacher')">Edit</button>
