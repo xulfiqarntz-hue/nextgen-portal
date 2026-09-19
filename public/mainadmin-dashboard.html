@@ -1835,13 +1835,7 @@
       const teacherId = document.getElementById('attALogTeacher').value;
       const studentId = document.getElementById('attALogStudent').value;
 
-      const emptyEl = document.getElementById('attALogsEmpty');
-      const tableWrap = document.getElementById('attALogsTableWrap');
-      const tbody = document.getElementById('attALogsBody');
-
       // Show skeleton
-      emptyEl.style.display = 'none';
-      tableWrap.style.display = 'none';
       document.getElementById('attALogsWrap').innerHTML = `
         <div style="padding:16px;">
           ${Array(5).fill('<div class="att-a-skel-row"><div class="att-a-skel att-a-skel-circle"></div><div class="att-a-skel-lines"><div class="att-a-skel att-a-skel-line" style="width:55%;"></div><div class="att-a-skel att-a-skel-line" style="width:30%;"></div></div></div>').join('')}
