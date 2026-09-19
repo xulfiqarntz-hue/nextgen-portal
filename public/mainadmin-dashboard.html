@@ -927,7 +927,13 @@
         if (ugiList) {
           ugiList.innerHTML = '';
           data.ungeneratedInvoices?.forEach(item => {
-            ugiList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border);">${item.studentName}</div>`;
+            const dateStr = new Date(item.startingDate).toLocaleDateString();
+            ugiList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border); font-size:0.85rem;">
+              <strong>${item.studentName}</strong><br>
+              Class: ${item.subjectName || 'N/A'}<br>
+              Start Date: ${dateStr}<br>
+              Fee: ${item.fee || 0} Rs
+            </div>`;
           });
           if (!data.ungeneratedInvoices?.length) ugiList.innerHTML = '<div style="color:var(--muted)">All up to date</div>';
         }
@@ -936,7 +942,13 @@
         if (ugpList) {
           ugpList.innerHTML = '';
           data.ungeneratedPayslips?.forEach(item => {
-            ugpList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border);">${item.teacherName}</div>`;
+            const dateStr = new Date(item.startingDate).toLocaleDateString();
+            ugpList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border); font-size:0.85rem;">
+              <strong>${item.teacherName}</strong> (for ${item.studentName})<br>
+              Class: ${item.subjectName || 'N/A'}<br>
+              Start Date: ${dateStr}<br>
+              Fee: ${item.fee || 0} Rs
+            </div>`;
           });
           if (!data.ungeneratedPayslips?.length) ugpList.innerHTML = '<div style="color:var(--muted)">All up to date</div>';
         }
