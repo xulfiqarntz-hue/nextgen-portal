@@ -21,7 +21,9 @@ const userSchema = new mongoose.Schema({
     startDate: { type: Date },
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     packageFee: { type: Number }
-  }]
+  }],
+  profilePicture: { type: String, default: '' },
+  timezone: { type: String, default: 'Asia/Karachi' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

@@ -360,9 +360,13 @@ router.get(
 router.get(
   '/student-report/:studentId',
   verifyToken,
-  allowRoles('mainadmin', 'subadmin'),
+  allowRoles('mainadmin', 'subadmin', 'student'),
   async (req, res) => {
     try {
+      if (req.user.role === 'student' && req.user.id !== req.params.studentId) {
+        return res.status(403).json({ error: 'Access denied to other student records.' });
+      }
+
       const student = await User.findById(req.params.studentId, 'name email').lean();
       if (!student || student.role === 'mainadmin') {
         return res.status(404).json({ error: 'Student not found.' });

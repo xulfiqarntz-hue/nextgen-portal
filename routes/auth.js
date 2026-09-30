@@ -48,9 +48,9 @@ router.post('/login', async (req, res) => {
 // Return current user info
 router.get('/me', verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id, 'name email role');
+    const user = await User.findById(req.user.id, 'name email role profilePicture studentDetails timezone');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ id: user._id, name: user.name, email: user.email, role: user.role });
+    res.json({ id: user._id, name: user.name, email: user.email, role: user.role, profilePicture: user.profilePicture, studentDetails: user.studentDetails, timezone: user.timezone });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -59,7 +59,7 @@ router.get('/me', verifyToken, async (req, res) => {
 // Update current user info
 router.put('/profile', verifyToken, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, profilePicture } = req.body;
     
     // Find the user
     const user = await User.findById(req.user.id);
@@ -79,11 +79,13 @@ router.put('/profile', verifyToken, async (req, res) => {
       user.password = hashedPassword;
     }
 
+    if (profilePicture !== undefined) user.profilePicture = profilePicture;
+
     await user.save();
 
     res.json({ 
       message: 'Profile updated successfully', 
-      user: { id: user._id, name: user.name, email: user.email, role: user.role } 
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, profilePicture: user.profilePicture } 
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -93,7 +95,7 @@ router.put('/profile', verifyToken, async (req, res) => {
 // Admin/Subadmin edit user
 router.put('/edit/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
-    const { name, email, password, studentDetails, teacherDetails } = req.body;
+    const { name, email, password, studentDetails, teacherDetails, timezone } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -116,6 +118,7 @@ router.put('/edit/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async 
     
     if (studentDetails !== undefined) user.studentDetails = studentDetails;
     if (teacherDetails !== undefined) user.teacherDetails = teacherDetails;
+    if (timezone !== undefined) user.timezone = timezone;
 
     await user.save();
     res.json({ message: 'User updated successfully' });

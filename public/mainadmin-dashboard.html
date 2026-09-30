@@ -776,6 +776,10 @@
           <input type="text" id="editUserEmail" required style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-color);">
         </div>
         <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; margin-bottom:5px; color:var(--text);">Timezone (e.g. Asia/Riyadh, Asia/Dubai, Europe/London)</label>
+          <input type="text" id="editUserTimezone" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-color);" placeholder="Default: Asia/Karachi">
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
           <label style="display:block; margin-bottom:5px; color:var(--text);">New Password (leave blank to keep current)</label>
           <input type="password" id="editUserPassword" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-color);">
         </div>
@@ -1045,10 +1049,12 @@
         let userArr = role === 'student' ? window.students : window.tutors;
         let user = userArr.find(u => u._id === id);
         let details = role === 'student' ? (user.studentDetails || []) : (user.teacherDetails || []);
+        document.getElementById('editUserTimezone').value = user.timezone || 'Asia/Karachi';
         
         details.forEach(d => addDetailRow(d));
       } else {
         detailsSection.style.display = 'none';
+        document.getElementById('editUserTimezone').value = 'Asia/Karachi';
       }
       
       document.getElementById('editUserModal').classList.add('active');
@@ -1096,8 +1102,9 @@
       const name = document.getElementById('editUserName').value;
       const email = document.getElementById('editUserEmail').value;
       const password = document.getElementById('editUserPassword').value;
+      const timezone = document.getElementById('editUserTimezone').value;
 
-      const body = { name, email };
+      const body = { name, email, timezone };
       if (password) body.password = password;
 
       if (currentUserRoleForEdit === 'student' || currentUserRoleForEdit === 'teacher') {
