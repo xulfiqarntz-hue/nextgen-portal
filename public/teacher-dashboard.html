@@ -835,15 +835,33 @@
       <div class="section-header">
         <h3>Mark Attendance</h3>
       </div>
+      
       <div style="background: var(--bg-card); border-radius: 16px; padding: 24px; border: 1px solid var(--border-light); margin-bottom: 24px;">
-        <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+        <h4 style="margin-bottom: 16px;">Mark Single Student</h4>
+        <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+          <input type="date" id="att-single-date" class="search-bar" style="border-radius: 10px; width: 200px;">
+          <select id="att-single-student" class="search-bar" style="border-radius: 10px; width: 200px; padding: 10px; border: 1px solid var(--border-light); background: var(--bg-body);">
+             <option value="">Select Student</option>
+          </select>
+          <select id="att-single-status" class="search-bar" style="border-radius: 10px; width: 150px; padding: 10px; border: 1px solid var(--border-light); background: var(--bg-body);">
+             <option value="present">Present</option>
+             <option value="absent">Absent</option>
+             <option value="late">Late</option>
+          </select>
+          <button class="btn-primary" onclick="submitSingleAttendance()">Submit</button>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-card); border-radius: 16px; padding: 24px; border: 1px solid var(--border-light); margin-bottom: 24px;">
+        <h4 style="margin-bottom: 16px;">Or Bulk Load Class</h4>
+        <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
           <input type="date" id="att-date" class="search-bar" style="border-radius: 10px; width: 200px;">
           <button class="btn-primary" onclick="loadAttendanceStudents()">Load Students</button>
         </div>
         <div id="att-students-list" style="display: flex; flex-direction: column; gap: 12px;">
            <p style="color:var(--text-muted);">Select a date and click Load Students.</p>
         </div>
-        <button class="btn-primary" id="att-submit-btn" style="margin-top: 20px; display: none;" onclick="submitAttendance()">Submit Attendance</button>
+        <button class="btn-primary" id="att-submit-btn" style="margin-top: 20px; display: none;" onclick="submitAttendance()">Submit Bulk Attendance</button>
       </div>
     </div>
 
@@ -1155,19 +1173,47 @@
       } catch(err) { console.error(err); }
     }
 
-    // --- TEST RECORDS (TEACHER) ---
+    // --- TEST RECORDS & SINGLE ATTENDANCE (TEACHER) ---
     async function populateTestStudentDropdown() {
       try {
         const res = await fetch('/api/my-students', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         if(data.students) {
-          const sel = document.getElementById('test-student-id');
+          const selTest = document.getElementById('test-student-id');
+          const selAtt = document.getElementById('att-single-student');
           data.students.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s._id;
-            opt.innerText = s.name;
-            sel.appendChild(opt);
+            const optTest = document.createElement('option');
+            optTest.value = s._id;
+            optTest.innerText = s.name;
+            if(selTest) selTest.appendChild(optTest);
+            
+            const optAtt = document.createElement('option');
+            optAtt.value = s._id;
+            optAtt.innerText = s.name;
+            if(selAtt) selAtt.appendChild(optAtt);
           });
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    async function submitSingleAttendance() {
+      const date = document.getElementById('att-single-date').value;
+      const studentId = document.getElementById('att-single-student').value;
+      const status = document.getElementById('att-single-status').value;
+      
+      if (!date || !studentId) return alert('Please select a date and a student.');
+      
+      try {
+        const res = await fetch('/api/attendance/mark-bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ date, records: [{ studentId, status }] })
+        });
+        if(res.ok) {
+          alert('Attendance saved successfully');
+          checkMissingAttendance();
+        } else {
+          alert('Failed to save attendance');
         }
       } catch (err) { console.error(err); }
     }
