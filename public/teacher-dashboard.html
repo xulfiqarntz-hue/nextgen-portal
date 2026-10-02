@@ -1118,7 +1118,7 @@
       }));
       
       try {
-        const res = await fetch('/api/attendance/mark-bulk', {
+        const res = await fetch('/api/attendance/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({ date, records })
@@ -1127,7 +1127,8 @@
           alert('Attendance saved successfully');
           checkMissingAttendance();
         } else {
-          alert('Failed to save attendance');
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Failed to save attendance');
         }
       } catch (err) { console.error(err); }
     }
@@ -1204,7 +1205,7 @@
       if (!date || !studentId) return alert('Please select a date and a student.');
       
       try {
-        const res = await fetch('/api/attendance/mark-bulk', {
+        const res = await fetch('/api/attendance/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({ date, records: [{ studentId, status }] })
@@ -1213,7 +1214,8 @@
           alert('Attendance saved successfully');
           checkMissingAttendance();
         } else {
-          alert('Failed to save attendance');
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Failed to save attendance');
         }
       } catch (err) { console.error(err); }
     }
