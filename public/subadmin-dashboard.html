@@ -249,6 +249,19 @@
       .topbar h2 {
         font-size: 1.5rem;
       }
+      #direct-chat .card {
+        flex-direction: column !important;
+      }
+      #direct-chat .card > div:first-child {
+        width: 100% !important;
+        height: 150px !important;
+        flex-shrink: 0;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+      }
+      #directChatBottomBar input {
+        font-size: 16px; /* Prevents iOS auto-zoom */
+      }
     }
   </style>
 </head>
