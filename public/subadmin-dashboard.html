@@ -265,6 +265,7 @@
     }
   </style>
   <link rel="stylesheet" href="/admin-portal.css">
+  <link rel="stylesheet" href="/portal-motion.css">
 </head>
 <body>
   <div class="layout">
@@ -1053,7 +1054,6 @@
         select.innerHTML = '<option value="">Select tutor</option>';
         window.tutors.forEach(t => { select.innerHTML += `<option value="${t._id}">${t.name} (${t.email})</option>`; });
       });
-      });
     }
 
     function populateInvoiceCycles() {
@@ -1276,7 +1276,7 @@
           return;
         }
         alert(data.message || 'Invoice deleted.');
-        loadInvoices();
+        await Promise.all([loadInvoices(), loadDashboardBillingOverview(), loadDashboardStats()]);
       } catch (err) {
         alert('Delete failed: ' + err.message);
       }
@@ -1401,7 +1401,7 @@
           return;
         }
         alert(data.message || 'Payslip deleted.');
-        loadPayslips();
+        await Promise.all([loadPayslips(), loadDashboardBillingOverview(), loadDashboardStats()]);
       } catch (err) {
         alert('Delete failed: ' + err.message);
       }

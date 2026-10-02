@@ -69,7 +69,13 @@ router.get('/get/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (
 });
 
 router.delete('/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
-  res.status(405).json({ error: 'Payslips are retained as financial history and cannot be deleted.' });
+  try {
+    const payslip = await Payslip.findByIdAndDelete(req.params.id);
+    if (!payslip) return res.status(404).json({ error: 'Payslip not found.' });
+    res.json({ message: 'Payslip deleted.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Update payslip status

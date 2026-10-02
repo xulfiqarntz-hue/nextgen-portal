@@ -286,6 +286,7 @@
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="/admin-portal.css">
+  <link rel="stylesheet" href="/portal-motion.css">
 </head>
 <body>
   <div class="layout">
@@ -1544,7 +1545,8 @@
           <td>${inv.arrears || 0}</td>
           <td>${inv.total}</td>
           <td>${statusBadge}</td>
-            <td><button class="button-primary" onclick="downloadInvoice('${inv._id}')">Download</button></td>`;
+            <td><button class="button-primary" onclick="downloadInvoice('${inv._id}')">Download</button>
+              <button class="button-secondary" onclick="deleteInvoice('${inv._id}')" style="margin-left:8px;">Delete</button></td>`;
         body.appendChild(tr);
       });
     }
@@ -1558,6 +1560,18 @@
       });
       loadInvoices();
       loadDashboardBillingOverview();
+    }
+
+    async function deleteInvoice(id) {
+      if (!confirm('Permanently delete this invoice?')) return;
+      try {
+        const res = await fetch('/api/invoices/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Invoice deletion failed.');
+        await Promise.all([loadInvoices(), loadDashboardBillingOverview(), loadDashboardStats()]);
+      } catch (err) {
+        alert(err.message);
+      }
     }
 
     function renderSubjects() {
@@ -1760,7 +1774,8 @@
           <td>${ps.deductions}</td>
           <td>${ps.totalSalary}</td>
           <td>${statusBadge}</td>
-            <td><button class="button-primary" onclick="downloadPayslip('${ps._id}')">Download</button></td>`;
+            <td><button class="button-primary" onclick="downloadPayslip('${ps._id}')">Download</button>
+              <button class="button-secondary" onclick="deletePayslip('${ps._id}')" style="margin-left:8px;">Delete</button></td>`;
         body.appendChild(tr);
       });
     }
@@ -1774,6 +1789,18 @@
       });
       loadPayslips();
       loadDashboardBillingOverview();
+    }
+
+    async function deletePayslip(id) {
+      if (!confirm('Permanently delete this payslip?')) return;
+      try {
+        const res = await fetch('/api/payslips/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Payslip deletion failed.');
+        await Promise.all([loadPayslips(), loadDashboardBillingOverview(), loadDashboardStats()]);
+      } catch (err) {
+        alert(err.message);
+      }
     }
 
     async function createPayslip() {

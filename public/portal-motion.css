@@ -1,0 +1,71 @@
+html { scroll-behavior: smooth; }
+
+@keyframes portal-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+:where(.view-container.active, .section.active) {
+  animation: portal-enter .3s ease-out both;
+}
+
+:where(.dashboard-grid > *, .stats-row > *, .panel-grid > .card) {
+  animation: portal-enter .34s ease-out both;
+}
+
+:where(.dashboard-grid > :nth-child(2), .stats-row > :nth-child(2), .panel-grid > .card:nth-child(2)) {
+  animation-delay: 45ms;
+}
+
+:where(.dashboard-grid > :nth-child(3), .stats-row > :nth-child(3), .panel-grid > .card:nth-child(3)) {
+  animation-delay: 90ms;
+}
+
+:where(.dashboard-grid > :nth-child(4), .panel-grid > .card:nth-child(4)) {
+  animation-delay: 135ms;
+}
+
+:where(.nav-item, .nav button, .button-primary, .button-secondary, .btn-primary, .btn-secondary, .logout-btn, .theme-toggle, .notification-btn) {
+  transition: color .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+:where(.card, .stat-card, .welcome-card, .side-widget, .schedule-card, .schedule-item, .course-card, .settings-card, .test-item, .att-a-stat) {
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease, transform .2s ease;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :where(.nav-item:hover, .nav button:hover, .button-primary:hover, .button-secondary:hover, .btn-primary:hover, .btn-secondary:hover, .logout-btn:hover, .theme-toggle:hover, .notification-btn:hover) {
+    transform: translateY(-1px);
+  }
+
+  :where(.card, .stat-card, .welcome-card, .side-widget, .schedule-card, .schedule-item, .course-card, .settings-card, .test-item, .att-a-stat):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
+  }
+
+  [data-theme="dark"] :where(.card, .stat-card, .welcome-card, .side-widget, .schedule-card, .schedule-item, .course-card, .settings-card, .test-item, .att-a-stat):hover {
+    box-shadow: 0 12px 26px rgba(0, 0, 0, .2);
+  }
+}
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary, var(--accent, #2563eb)) 35%, transparent);
+  outline-offset: 2px;
+}
+
+:where(button, .button-primary, .button-secondary, .btn-primary, .btn-secondary):active {
+  transform: scale(.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
