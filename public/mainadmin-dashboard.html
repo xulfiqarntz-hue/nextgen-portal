@@ -284,12 +284,13 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="/admin-portal.css">
 </head>
 <body>
   <div class="layout">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-logo"><img id="brandLogoImg" src="/nextgen-logo.png" alt="NextGen logo" style="width:35px;height:35px;border-radius:12px;object-fit:cover;display:block;"></div>
+        <div class="brand-logo"><img id="brandLogoImg" src="/LOGOW.png" alt="NextGen Academy"></div>
         <div class="brand-text">
           <h1>NextGen Admin</h1>
           <p>Main Admin</p>
@@ -2424,7 +2425,7 @@
 
     // Apply saved theme immediately on load
     (function() {
-      const saved = localStorage.getItem('ngAdminTheme') || 'dark';
+      const saved = localStorage.getItem('ngAdminTheme') || 'light';
       applyTheme(saved);
     })();
 
