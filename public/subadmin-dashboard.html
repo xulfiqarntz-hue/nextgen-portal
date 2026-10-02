@@ -213,6 +213,43 @@
       .att-a-table th, .att-a-table td { color: #000; border-color: #ccc; }
       .card { box-shadow: none; border: none; padding: 0; margin: 0 !important; }
     }
+
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        z-index: 1000;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+      }
+      .sidebar.show-mobile {
+        left: 0;
+      }
+      .content {
+        padding: 16px;
+      }
+      #mobileMenuBtn {
+        display: block !important;
+      }
+      .panel-grid, .form-grid, .att-a-stat-grid {
+        grid-template-columns: 1fr;
+      }
+      .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .table {
+        white-space: nowrap;
+      }
+      .topbar h2 {
+        font-size: 1.5rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -252,9 +289,14 @@
 
     <main class="content">
       <div class="topbar">
-        <div>
-          <h2>Welcome back, <span id="adminName">Admin</span></h2>
-          <p>Manage students, tutors, assignments, and chats from one polished portal.</p>
+        <div style="display: flex; align-items: flex-start; gap: 16px;">
+          <button id="mobileMenuBtn" style="display:none; background:none; border:none; cursor:pointer; color: var(--text); padding-top: 6px;" onclick="document.querySelector('.sidebar').classList.toggle('show-mobile')">
+            <svg fill="currentColor" width="28" height="28" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+          </button>
+          <div>
+            <h2>Welcome back, <span id="adminName">Admin</span></h2>
+            <p>Manage students, tutors, assignments, and chats from one polished portal.</p>
+          </div>
         </div>
         <div class="pill">Live academy control panel</div>
       </div>

@@ -557,6 +557,51 @@
       box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.1); z-index: 50;
     }
     .btn-end { background: var(--accent-red); color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        bottom: 0;
+        z-index: 1000;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+      }
+      .sidebar.show-mobile {
+        left: 0;
+      }
+      .dashboard-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .stat-grid, .courses-grid, .exam-grid, .tools-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .header {
+        padding: 0 16px;
+      }
+      .search-bar {
+        width: 150px;
+      }
+      .profile-name, .profile-role {
+        display: none;
+      }
+      #mobileMenuBtn {
+        display: block !important;
+      }
+      .view-container {
+        padding: 16px;
+      }
+      .table-container {
+        overflow-x: auto;
+      }
+      .call-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .participants-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -599,9 +644,14 @@
     
     <!-- Header -->
     <header class="header">
-      <div class="search-bar">
-        <svg fill="var(--text-muted)" width="18" height="18" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        <input type="text" placeholder="Search classes, courses, students...">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="mobileMenuBtn" style="display:none; background:none; border:none; cursor:pointer; color: var(--text-dark);" onclick="document.getElementById('sidebar').classList.toggle('show-mobile')">
+          <svg fill="currentColor" width="24" height="24" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <div class="search-bar">
+          <svg fill="var(--text-muted)" width="18" height="18" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" placeholder="Search classes, courses, students...">
+        </div>
       </div>
       <div class="header-right">
         <button class="notification-btn">
