@@ -12,6 +12,7 @@ const payslipRoutes = require('./routes/payslip');
 const attendanceRoutes = require('./routes/attendance');
 const timetableRoutes = require('./routes/timetable');
 const dashboardRoutes = require('./routes/dashboard');
+const testsRoutes = require('./routes/tests');
 
 const app = express();
 const server = http.createServer(app);
@@ -36,6 +37,7 @@ app.use('/api/payslips', payslipRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/timetable', timetableRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/tests', testsRoutes);
 app.use('/api', assignRoutes);
 
 // ── Shared Whiteboard via Socket.IO ──

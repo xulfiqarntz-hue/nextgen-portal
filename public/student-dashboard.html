@@ -625,7 +625,7 @@
         <!-- Left Col -->
         <div class="dash-col-left">
           <div class="welcome-card">
-            <h1 id="welcome-text">Welcome back! 👋</h1>
+            <h1 id="welcome-text">Welcome back!</h1>
             <p>"Success is the sum of small efforts, repeated day in and day out." Keep working toward your goals.</p>
             <div style="display:flex;gap:12px;margin-top:8px;">
               <button class="btn-primary" onclick="switchView('courses', document.querySelectorAll('.nav-item')[2])">View Courses</button>
@@ -635,7 +635,7 @@
           <div class="stats-row">
             <div class="stat-card">
               <span class="stat-value" id="stat-classes">0</span>
-              <span class="stat-label">Upcoming Classes</span>
+              <span class="stat-label">Classes Today</span>
             </div>
             <div class="stat-card">
               <span class="stat-value" id="stat-attendance">0%</span>
@@ -849,7 +849,7 @@
         
         // Populate Header & Settings
         const firstName = currentUser.name.split(' ')[0];
-        document.getElementById('welcome-text').innerText = 'Welcome back, ' + firstName + '! 👋';
+        document.getElementById('welcome-text').innerText = 'Welcome back, ' + currentUser.name + '!';
         document.getElementById('header-name').innerText = currentUser.name;
         document.getElementById('settings-name').value = currentUser.name;
         document.getElementById('settings-email').value = currentUser.email;
@@ -872,6 +872,7 @@
         generateCalendar();
         await fetchTimetable();
         await fetchAttendance();
+        await loadTestRecords();
         
         // Init Chat
         loadTeachers();
@@ -994,7 +995,10 @@
     // --- ATTENDANCE ---
     async function fetchAttendance() {
       try {
-        const res = await fetch('/api/attendance/student-report/' + currentUser.id, {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        const res = await fetch('/api/attendance/student-report/' + currentUser.id + '?dateFrom=' + firstDay + '&dateTo=' + lastDay, {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         if (!res.ok) return;
@@ -1018,6 +1022,33 @@
       }
     }
 
+    // --- TEST RECORDS ---
+    async function loadTestRecords() {
+      try {
+        const res = await fetch('/api/tests/student', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.ok ? await res.json() : [];
+        
+        let widgetHtml = '';
+        if(data.length === 0) {
+          widgetHtml = '<p style="font-size:0.9rem;color:var(--text-muted);text-align:center;">No tests recorded yet.</p>';
+        } else {
+          data.slice(0, 5).forEach(t => {
+             widgetHtml += `
+              <div class="test-item" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-light); padding: 8px 0;">
+                <div>
+                  <div class="test-title" style="font-weight:600; font-size:0.9rem;">${t.title}</div>
+                  <div class="test-meta" style="font-size:0.8rem; color:var(--text-muted);">${t.teacherId ? t.teacherId.name : 'Unknown'}</div>
+                </div>
+                <div class="test-score" style="background:var(--primary-light); color:var(--primary); padding:4px 8px; border-radius:12px; font-weight:700; font-size:0.85rem;">${t.score}/${t.totalMarks}</div>
+              </div>
+            `;
+          });
+        }
+        const container = document.getElementById('test-list-container');
+        if(container) container.innerHTML = widgetHtml;
+      } catch(err) { console.error(err); }
+    }
+
     // --- CALENDAR ---
     function generateCalendar() {
       const grid = document.querySelector('.calendar-grid');
@@ -1028,7 +1059,7 @@
       // Keep headers
       let html = grid.innerHTML.split('<!-- Calendar dynamically generated -->')[0] + '<!-- Calendar dynamically generated -->';
       
-      for(let i = 0; i < firstDay; i++) { html += '<div></div>'; }
+      for(let i = 0; i < firstDay; i++) { html += '<div class="cal-day" style="visibility: hidden;"></div>'; }
       
       for(let i = 1; i <= daysInMonth; i++) {
         const isToday = i === now.getDate();

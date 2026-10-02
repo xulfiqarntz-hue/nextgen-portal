@@ -260,6 +260,7 @@
         <button data-tab="invoices" onclick="selectTab('invoices')">Invoices</button>
         <button data-tab="payslips" onclick="selectTab('payslips')">Payslips</button>
         <button data-tab="attendance" onclick="selectTab('attendance')">Attendance</button>
+        <button data-tab="testrecords" onclick="selectTab('testrecords')">Test Records</button>
         <button data-tab="timetable" onclick="window.location.href='/timetable.html'">Timetable</button>
         <button data-tab="profile-settings" onclick="selectTab('profile-settings')">Profile Settings</button>
       </div>
@@ -755,6 +756,27 @@
         </div>
       </section>
 
+      <!-- TEST RECORDS SECTION -->
+      <section id="testrecords" class="section">
+        <h2>Test Records (All)</h2>
+        <div class="card" style="margin-top:20px;">
+          <table style="width:100%; text-align:left; border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <th style="padding:10px;">Date</th>
+                <th style="padding:10px;">Student</th>
+                <th style="padding:10px;">Teacher</th>
+                <th style="padding:10px;">Test Title</th>
+                <th style="padding:10px;">Score</th>
+              </tr>
+            </thead>
+            <tbody id="adminTestRecordsTable">
+              <tr><td colspan="5" style="padding:10px; text-align:center;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -920,6 +942,7 @@
       loadPayslips();
       loadDashboardStats();
       loadDashboardBillingOverview();
+      loadAllTestRecords();
     }
 
     async function loadDashboardBillingOverview() {
