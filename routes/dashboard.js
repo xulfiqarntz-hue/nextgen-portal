@@ -30,6 +30,8 @@ router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin')
     
     // Logic for finding ungenerated invoices/payslips
     const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     
     const students = await User.find({ role: 'student' });
     const teachers = await User.find({ role: 'teacher' });

@@ -1119,10 +1119,16 @@
       }
     }
 
+    let invoiceCycleLoadError = null;
+
     async function loadDashboardBillingOverview() {
+      window.ungeneratedInvoices = null;
+      invoiceCycleLoadError = null;
+      populateInvoiceCycles();
       try {
         const res = await fetch('/api/dashboard/billing-overview', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to load billing cycles.');
         window.ungeneratedInvoices = data.ungeneratedInvoices || [];
         
         const uiList = document.getElementById('unpaidInvoicesList');
@@ -1177,6 +1183,11 @@
 
         populateInvoiceCycles();
       } catch (err) {
+        invoiceCycleLoadError = err.message || 'Unable to load billing cycles.';
+        window.ungeneratedInvoices = [];
+        const list = document.getElementById('ungeneratedInvoicesList');
+        if (list) list.textContent = invoiceCycleLoadError;
+        populateInvoiceCycles();
         console.error(err);
       }
     }
@@ -1471,7 +1482,40 @@
       const cycleSelect = document.getElementById('invoiceCycleSelect');
       cycleSelect.innerHTML = '<option value="">Select Cycle</option>';
       if (!studentId) return;
+
+      const addUnavailableOption = message => {
+        cycleSelect.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = message;
+        option.disabled = true;
+        option.selected = true;
+        cycleSelect.appendChild(option);
+      };
+
+      if (invoiceCycleLoadError) {
+        addUnavailableOption('Billing cycles failed to load');
+        return;
+      }
+      if (!Array.isArray(window.ungeneratedInvoices)) {
+        addUnavailableOption('Loading billing cycles...');
+        return;
+      }
+
+      const student = (window.students || []).find(item => item._id === studentId);
+      const studentDetails = (student?.studentDetails || []).filter(detail => detail.joiningDate);
+      if (!studentDetails.length) {
+        addUnavailableOption('Add a joining date in Student Details');
+        populateInvoiceSubjects();
+        return;
+      }
+
       const cycles = (window.ungeneratedInvoices || []).filter(item => String(item.studentId) === studentId);
+      if (!cycles.length) {
+        addUnavailableOption('No completed invoice cycles are due');
+        populateInvoiceSubjects();
+        return;
+      }
       const groupedCycles = new Map();
       cycles.forEach(item => {
         const cycleStart = new Date(item.cycleStart).toISOString().slice(0, 10);
