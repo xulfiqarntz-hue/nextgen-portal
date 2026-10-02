@@ -374,19 +374,19 @@
           <div class="card" style="border-top: 4px solid #f59e0b;">
             <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Gross Revenue (Invoices)</h3>
             <strong id="revenueCount" style="font-size:2rem; color:#f59e0b;">0</strong>
-            <p class="note">Total billed this month</p>
+            <p class="note">All-time gross billed amount</p>
           </div>
           <div class="card" style="border-top: 4px solid #ef4444;">
             <h3 style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Total Payroll (Payslips)</h3>
             <strong id="payrollCount" style="font-size:2rem; color:#ef4444;">0</strong>
-            <p class="note">Total salary processed this month</p>
+            <p class="note">All-time payroll processed</p>
           </div>
         </div>
       </section>
 
       <!-- Billing Overview -->
       <section id="billingOverviewSection" class="section active" style="margin-top:20px;">
-        <header><h3>Billing Overview (Current Month)</h3></header>
+        <header><h3>Billing Overview</h3></header>
         <div class="panel-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
           <div class="card" style="border-top: 4px solid var(--danger);">
             <h4 style="color:var(--danger); margin-bottom:10px;">Unpaid Invoices</h4>
@@ -547,7 +547,7 @@
         <div class="card">
           <div class="form-grid">
             <div class="form-group"><label>Student</label><select id="invoiceStudentSelect" onchange="populateInvoiceCycles()"></select></div>
-            <div class="form-group"><label>Billing Cycle</label><select id="invoiceCycleSelect"><option value="">Select Cycle</option></select></div>
+            <div class="form-group"><label>Billing Cycle</label><select id="invoiceCycleSelect" onchange="populateInvoiceSubjects()"><option value="">Select Cycle</option></select></div>
             <div class="form-group"><label>Month</label><input id="invoiceMonth" placeholder="March 2026"></div>
             <div class="form-group"><label>Subject 1 Name</label><input id="invSub1Name" placeholder="e.g. Mathematics"></div>
             <div class="form-group"><label>Subject 1 Amount</label><input id="invSub1Amt" type="number" placeholder="0" min="0"></div>
@@ -572,7 +572,7 @@
           <p id="invoiceMsg" class="note"></p>
         </div>
         <div class="card" style="margin-top:24px;">
-          <h3>Recent Invoices</h3>
+              <h3>Invoice History</h3>
           <table class="table">
             <thead>
               <tr>
@@ -613,7 +613,7 @@
           <p id="payslipMsg" class="note"></p>
         </div>
         <div class="card" style="margin-top:24px;">
-          <h3>Recent Payslips</h3>
+              <h3>Payslip History</h3>
           <table class="table">
             <thead>
               <tr>
@@ -1004,6 +1004,7 @@
       try {
         const res = await fetch('/api/dashboard/billing-overview', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
+        window.ungeneratedInvoices = data.ungeneratedInvoices || [];
         
         const uiList = document.getElementById('unpaidInvoicesList');
         if (uiList) {
@@ -1028,10 +1029,12 @@
           ugiList.innerHTML = '';
           data.ungeneratedInvoices?.forEach(item => {
             const dateStr = new Date(item.startingDate).toLocaleDateString();
+            const cycleStr = `${new Date(item.cycleStart).toLocaleDateString()} - ${new Date(item.cycleEnd).toLocaleDateString()}`;
             ugiList.innerHTML += `<div style="padding:8px; border-bottom:1px solid var(--border); font-size:0.85rem;">
               <strong>${item.studentName}</strong><br>
               Class: ${item.subjectName || 'N/A'}<br>
-              Start Date: ${dateStr}<br>
+              Enrollment: ${dateStr}<br>
+              Completed Cycle: ${cycleStr}<br>
               Fee: ${item.fee || 0} Rs
             </div>`;
           });
@@ -1052,6 +1055,8 @@
           });
           if (!data.ungeneratedPayslips?.length) ugpList.innerHTML = '<div style="color:var(--muted)">All up to date</div>';
         }
+
+        populateInvoiceCycles();
       } catch (err) {
         console.error(err);
       }
@@ -1088,7 +1093,7 @@
         const iRes = await fetch('/api/invoices/list', { headers: { 'Authorization': 'Bearer ' + token } });
         if(iRes.ok) {
           const iData = await iRes.json();
-          const totalRev = (iData.invoices || []).reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
+          const totalRev = (iData.invoices || []).reduce((sum, inv) => sum + (Number(inv.payment ?? inv.total) || 0), 0);
           document.getElementById('revenueCount').innerText = totalRev.toLocaleString();
         }
       } catch(e) {}
@@ -1347,16 +1352,32 @@
       const cycleSelect = document.getElementById('invoiceCycleSelect');
       cycleSelect.innerHTML = '<option value="">Select Cycle</option>';
       if (!studentId) return;
-      const student = window.students.find(s => s._id === studentId);
-      if (student && student.studentDetails) {
-        const uniqueDates = [...new Set(student.studentDetails.map(d => {
-          if (!d.joiningDate) return null;
-          const dt = new Date(d.joiningDate);
-          return isNaN(dt.getTime()) ? null : dt.getDate();
-        }).filter(Boolean))];
-        uniqueDates.forEach(date => {
-          cycleSelect.innerHTML += `<option value="${date}">${date}th of the month</option>`;
-        });
+      const cycles = (window.ungeneratedInvoices || []).filter(item => String(item.studentId) === studentId);
+      const groupedCycles = new Map();
+      cycles.forEach(item => {
+        const cycleStart = new Date(item.cycleStart).toISOString().slice(0, 10);
+        if (!groupedCycles.has(cycleStart)) groupedCycles.set(cycleStart, { cycleEnd: item.cycleEnd, subjects: [] });
+        groupedCycles.get(cycleStart).subjects.push(item.subjectName);
+      });
+      groupedCycles.forEach((cycle, cycleStart) => {
+        const option = document.createElement('option');
+        option.value = cycleStart;
+        option.textContent = `${new Date(`${cycleStart}T00:00:00Z`).toLocaleDateString()} - ${new Date(cycle.cycleEnd).toLocaleDateString()} (${[...new Set(cycle.subjects)].join(', ')})`;
+        cycleSelect.appendChild(option);
+      });
+      populateInvoiceSubjects();
+    }
+
+    function populateInvoiceSubjects() {
+      const studentId = document.getElementById('invoiceStudentSelect').value;
+      const cycleStart = document.getElementById('invoiceCycleSelect').value;
+      const cycleItems = (window.ungeneratedInvoices || []).filter(item =>
+        String(item.studentId) === studentId && new Date(item.cycleStart).toISOString().slice(0, 10) === cycleStart
+      );
+      for (let index = 1; index <= 4; index++) {
+        const item = cycleItems[index - 1];
+        document.getElementById('invSub' + index + 'Name').value = item ? item.subjectName || '' : '';
+        document.getElementById('invSub' + index + 'Amt').value = item ? item.fee ?? '' : '';
       }
     }
 
@@ -1405,8 +1426,7 @@
           <td>${inv.arrears || 0}</td>
           <td>${inv.total}</td>
           <td>${statusBadge}</td>
-          <td><button class="button-primary" onclick="downloadInvoice('${inv._id}')">Download</button>
-              <button class="button-secondary" onclick="deleteInvoice('${inv._id}')" style="margin-left:8px;background:#ef4444;color:#fff;">Delete</button></td>`;
+            <td><button class="button-primary" onclick="downloadInvoice('${inv._id}')">Download</button></td>`;
         body.appendChild(tr);
       });
     }
@@ -1495,7 +1515,7 @@
     async function createInvoice() {
       
       const studentId = document.getElementById('invoiceStudentSelect').value;
-      const cycleDate = document.getElementById('invoiceCycleSelect').value;
+      const cycleStart = document.getElementById('invoiceCycleSelect').value;
       const teacherId = null;
       const month = document.getElementById('invoiceMonth').value.trim();
       
@@ -1519,17 +1539,21 @@
       const msgEl = document.getElementById('invoiceMsg');
 
       msgEl.innerText = '';
-      if (!studentId || !month || subjects.length === 0 || !cycleDate) {
+      if (!studentId || !month || subjects.length === 0 || !cycleStart) {
         msgEl.innerText = 'Student, cycle, month, and at least one subject with amount are required.';
         return;
       }
       
       try {
-        let billingPeriodStart = null;
-        let billingPeriodEnd = null;
-        const now = new Date();
-        billingPeriodStart = new Date(now.getFullYear(), now.getMonth(), parseInt(cycleDate), 0, 0, 0);
-        billingPeriodEnd = new Date(now.getFullYear(), now.getMonth(), parseInt(cycleDate), 23, 59, 59);
+        const selectedCycle = (window.ungeneratedInvoices || []).find(item =>
+          String(item.studentId) === studentId && new Date(item.cycleStart).toISOString().slice(0, 10) === cycleStart
+        );
+        if (!selectedCycle) {
+          msgEl.innerText = 'This billing cycle is no longer outstanding. Refresh the dashboard and try again.';
+          return;
+        }
+        const billingPeriodStart = new Date(`${cycleStart}T00:00:00.000Z`);
+        const billingPeriodEnd = new Date(selectedCycle.cycleEnd);
         
         const payload = { studentId, teacherId, month, subjects, discount, arrears, bankAccountNo, bankName, ibanNo, accountTitle, className, billingPeriodStart, billingPeriodEnd };
         console.log('Invoice payload:', payload);
@@ -1559,7 +1583,7 @@
 
         msgEl.innerText = data.message || 'Invoice generated successfully.';
         clearInvoiceForm();
-        loadInvoices();
+        await Promise.all([loadInvoices(), loadDashboardBillingOverview()]);
       } catch (err) {
         msgEl.innerText = 'Unable to send invoice request: ' + err.message;
       }
@@ -1583,24 +1607,6 @@
       const ce = document.getElementById('invoiceClass');
       if (ce) ce.value = '';
       document.getElementById('invoiceMsg').innerText = '';
-    }
-
-    async function deleteInvoice(id) {
-      if (!confirm('Delete this invoice?')) return;
-      try {
-        const res = await fetch('/api/invoices/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
-        const text = await res.text();
-        let data = {};
-        try { data = text ? JSON.parse(text) : {}; } catch (e) { data.error = text; }
-        if (!res.ok) {
-          alert('Delete failed: ' + (data.error || `${res.status} ${res.statusText}`));
-          return;
-        }
-        alert(data.message || 'Invoice deleted.');
-        loadInvoices();
-      } catch (err) {
-        alert('Delete failed: ' + err.message);
-      }
     }
 
     function downloadInvoice(id) {
@@ -1636,8 +1642,7 @@
           <td>${ps.deductions}</td>
           <td>${ps.totalSalary}</td>
           <td>${statusBadge}</td>
-          <td><button class="button-primary" onclick="downloadPayslip('${ps._id}')">Download</button>
-              <button class="button-secondary" onclick="deletePayslip('${ps._id}')" style="margin-left:8px;background:#ef4444;color:#fff;">Delete</button></td>`;
+            <td><button class="button-primary" onclick="downloadPayslip('${ps._id}')">Download</button></td>`;
         body.appendChild(tr);
       });
     }
@@ -1694,7 +1699,7 @@
 
         msgEl.innerText = data.message || 'Payslip generated successfully.';
         clearPayslipForm();
-        loadPayslips();
+        await Promise.all([loadPayslips(), loadDashboardBillingOverview()]);
       } catch (err) {
         msgEl.innerText = 'Unable to send payslip request: ' + err.message;
       }
@@ -1711,22 +1716,6 @@
       document.getElementById('payslipAmount').value = '';
       document.getElementById('payslipDeductions').value = '';
       document.getElementById('payslipMsg').innerText = '';
-    }
-
-    async function deletePayslip(id) {
-      if (!confirm('Delete this payslip?')) return;
-      try {
-        const res = await fetch('/api/payslips/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.json();
-        if (!res.ok) {
-          alert('Delete failed: ' + (data.error || 'Failed'));
-          return;
-        }
-        alert(data.message || 'Payslip deleted.');
-        loadPayslips();
-      } catch (err) {
-        alert('Delete failed: ' + err.message);
-      }
     }
 
     function downloadPayslip(id) {

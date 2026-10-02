@@ -2,9 +2,26 @@ const express = require('express');
 const User = require('../models/User');
 const Invoice = require('../models/Invoice');
 const Payslip = require('../models/Payslip');
+const { getCompletedMonthlyCycles } = require('../utils/billing-cycles');
 const { verifyToken, allowRoles } = require('../middleware/auth');
 
 const router = express.Router();
+
+function monthKey(value) {
+  if (!value) return null;
+  const match = String(value).trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (!match) return null;
+  const parsed = new Date(`${match[1]} 1, ${match[2]} UTC`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 7);
+}
+
+function invoiceIncludesSubject(invoice, subjectName) {
+  const normalizedName = String(subjectName || '').trim().toLowerCase();
+  if (!normalizedName) return false;
+  const subjects = invoice.subjects || [];
+  if (subjects.some((subject) => String(subject.name || '').trim().toLowerCase() === normalizedName)) return true;
+  return String(invoice.className || '').trim().toLowerCase() === normalizedName;
+}
 
 router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
   try {
@@ -13,11 +30,10 @@ router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin')
     
     // Logic for finding ungenerated invoices/payslips
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     
     const students = await User.find({ role: 'student' });
     const teachers = await User.find({ role: 'teacher' });
+    const invoices = await Invoice.find().select('student subjects className month billingPeriodStart');
 
     let ungeneratedInvoices = [];
     let ungeneratedPayslips = [];
@@ -30,46 +46,31 @@ router.get('/billing-overview', verifyToken, allowRoles('mainadmin', 'subadmin')
           const dt = new Date(detail.joiningDate);
           if (isNaN(dt.getTime())) continue;
           
-          const cycleDate = new Date(dt);
-          // Timezone safe window: +/- 1.5 days around the expected cycle
-          const startOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth(), cycleDate.getDate() - 1, 0, 0, 0));
-          const endOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth(), cycleDate.getDate() + 1, 23, 59, 59, 999));
-          
-          const invExists = await Invoice.findOne({ 
-            student: student._id, 
-            'subjects.name': detail.subjectName,
-            $or: [
-              { billingPeriodStart: { $gte: startOfDay, $lte: endOfDay } },
-              { createdAt: { $gte: startOfMonth, $lte: endOfMonth }, billingPeriodStart: null }
-            ]
-          });
-          
-          // If not found by subject, try without subject for backward compatibility, but ideally they are separate
-          let found = invExists;
-          if (!found) {
-             const fallbackInv = await Invoice.findOne({ 
-               student: student._id, 
-               $or: [
-                 { billingPeriodStart: { $gte: startOfDay, $lte: endOfDay } },
-                 { createdAt: { $gte: startOfMonth, $lte: endOfMonth }, billingPeriodStart: null }
-               ]
-             });
-             if (fallbackInv && fallbackInv.subjects && fallbackInv.subjects.some(s => s.name === detail.subjectName)) {
-                 found = fallbackInv;
-             } else if (fallbackInv && fallbackInv.className === detail.subjectName) {
-                 found = fallbackInv;
-             }
-          }
+          const studentInvoices = invoices.filter((invoice) => invoice.student.toString() === student._id.toString());
 
-          if (!found) {
-            ungeneratedInvoices.push({
-              studentId: student._id,
-              studentName: student.name,
-              subjectName: detail.subjectName,
-              startingDate: dt,
-              fee: detail.packageFee,
-              cycleDay: cycleDate.getDate()
+          for (const { cycleStart, cycleEnd } of getCompletedMonthlyCycles(dt, now)) {
+            const cycleStartKey = cycleStart.toISOString().slice(0, 10);
+            const cycleMonthKey = cycleEnd.toISOString().slice(0, 7);
+            const invoiceExists = studentInvoices.some((invoice) => {
+              if (!invoiceIncludesSubject(invoice, detail.subjectName)) return false;
+              if (invoice.billingPeriodStart) {
+                const savedStart = new Date(invoice.billingPeriodStart).toISOString().slice(0, 10);
+                if (savedStart === cycleStartKey) return true;
+              }
+              return monthKey(invoice.month) === cycleMonthKey;
             });
+
+            if (!invoiceExists) {
+              ungeneratedInvoices.push({
+                studentId: student._id,
+                studentName: student.name,
+                subjectName: detail.subjectName,
+                startingDate: dt,
+                fee: detail.packageFee,
+                cycleStart,
+                cycleEnd
+              });
+            }
           }
         }
       }

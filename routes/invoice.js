@@ -96,14 +96,7 @@ router.get('/get/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (
 
 // Delete invoice
 router.delete('/:id', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
-  try {
-    console.log('DELETE /api/invoices/:id called for', req.params.id);
-    const inv = await Invoice.findByIdAndDelete(req.params.id);
-    if (!inv) return res.status(404).json({ error: 'Invoice not found.' });
-    res.json({ message: 'Invoice deleted.' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.status(405).json({ error: 'Invoices are retained as financial history and cannot be deleted.' });
 });
 
 // Update invoice status

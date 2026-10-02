@@ -1078,11 +1078,11 @@
         const data = await res.json();
         
         // Also fetch existing attendance for this date if any
-        const attRes = await fetch('/api/attendance/daily?date=' + date, { headers: { 'Authorization': 'Bearer ' + token } });
-        const attData = attRes.ok ? await attRes.json() : { records: [] };
+        const attRes = await fetch('/api/attendance/my-logs?date=' + date, { headers: { 'Authorization': 'Bearer ' + token } });
+        const attData = attRes.ok ? await attRes.json() : { logs: [] };
         const recordMap = {};
-        if (attData.records) {
-            attData.records.forEach(r => recordMap[r.student._id || r.student] = r.status);
+        if (attData.logs) {
+          attData.logs.forEach(r => recordMap[r.student._id || r.student] = r.status);
         }
 
         if(data.students && data.students.length > 0) {
@@ -1125,7 +1125,7 @@
         });
         if(res.ok) {
           alert('Attendance saved successfully');
-          checkMissingAttendance();
+          await checkMissingAttendance();
         } else {
           const data = await res.json().catch(() => ({}));
           alert(data.error || 'Failed to save attendance');
@@ -1135,9 +1135,10 @@
 
     async function checkMissingAttendance() {
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const res = await fetch('/api/attendance/daily?date=' + today, { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.ok ? await res.json() : { records: [] };
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const res = await fetch('/api/attendance/my-logs?date=' + today, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.ok ? await res.json() : { logs: [] };
         
         const myStudentsRes = await fetch('/api/my-students', { headers: { 'Authorization': 'Bearer ' + token } });
         const myStudentsData = await myStudentsRes.json();
@@ -1146,7 +1147,7 @@
         const ttData = await ttRes.json();
         
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const todayName = dayNames[new Date().getDay()];
+        const todayName = dayNames[now.getDay()];
         
         let hasPastClass = false;
         if (ttData && ttData.classes) {
@@ -1166,7 +1167,7 @@
           });
         }
         
-        if (myStudentsData.students && myStudentsData.students.length > 0 && data.records && data.records.length === 0 && hasPastClass) {
+        if (myStudentsData.students && myStudentsData.students.length > 0 && data.logs && data.logs.length === 0 && hasPastClass) {
           document.getElementById('attendance-warning-widget').style.display = 'block';
         } else {
           document.getElementById('attendance-warning-widget').style.display = 'none';
@@ -1212,7 +1213,7 @@
         });
         if(res.ok) {
           alert('Attendance saved successfully');
-          checkMissingAttendance();
+          await checkMissingAttendance();
         } else {
           const data = await res.json().catch(() => ({}));
           alert(data.error || 'Failed to save attendance');
