@@ -871,6 +871,9 @@
         <h3>Test Records</h3>
         <button class="btn-primary" onclick="document.getElementById('add-test-modal').style.display='flex'">+ Add Test Record</button>
       </div>
+      <div style="margin-bottom:16px; max-width:440px;">
+        <input id="teacher-test-search" type="search" class="search-bar" placeholder="Search by student or test title..." oninput="renderTeacherTestRecords()" style="width:100%;">
+      </div>
       
       <div class="test-list" id="full-test-list-container" style="background: var(--bg-card); padding: 24px; border-radius: 16px; border: 1px solid var(--border-light);">
         <p style="font-size:0.9rem;color:var(--text-muted);text-align:center;">No tests recorded yet.</p>
@@ -1246,37 +1249,49 @@
       } catch (err) { console.error(err); }
     }
 
+    let teacherTestRecords = [];
+
+    function renderTeacherTestRecords() {
+      const query = document.getElementById('teacher-test-search').value.trim().toLowerCase();
+      const records = teacherTestRecords.filter(record =>
+        (record.studentId?.name || '').toLowerCase().includes(query) ||
+        (record.title || '').toLowerCase().includes(query)
+      );
+      const container = document.getElementById('full-test-list-container');
+
+      if (!records.length) {
+        container.innerHTML = `<p style="font-size:0.9rem;color:var(--text-muted);text-align:center;">${query ? 'No matching test records.' : 'No tests recorded yet.'}</p>`;
+        return;
+      }
+
+      container.innerHTML = records.map(record => `
+        <div class="test-item" style="padding:12px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center; gap:16px;">
+          <div>
+            <div class="test-title">${record.title}</div>
+            <div class="test-meta">${record.studentId?.name || 'Unknown Student'} · ${new Date(record.createdAt).toLocaleDateString()}</div>
+          </div>
+          <div class="test-score">${record.score} / ${record.totalMarks}</div>
+        </div>
+      `).join('');
+    }
+
     async function loadTestRecords() {
       try {
-        const res = await fetch('/api/tests/student', { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.ok ? await res.json() : [];
+        const res = await fetch('/api/tests/teacher', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) throw new Error('Unable to load test records');
+        const data = await res.json();
+        teacherTestRecords = Array.isArray(data) ? data : [];
         
-        document.getElementById('stat-tests').innerText = data.length || 0;
+        document.getElementById('stat-tests').innerText = teacherTestRecords.length;
         
-        let html = '';
-        if(data.length === 0) {
-          html = '<p style="font-size:0.9rem;color:var(--text-muted);text-align:center;">No tests recorded yet.</p>';
-        } else {
-          data.forEach(t => {
-            html += `
-              <div class="test-item" style="padding: 12px; border-bottom: 1px solid var(--border-light); display:flex; justify-content: space-between; align-items:center;">
-                <div>
-                  <div class="test-title">${t.title}</div>
-                  <div class="test-meta">Student: ${t.studentId ? t.studentId.name : 'Unknown'} • ${new Date(t.createdAt).toLocaleDateString()}</div>
-                </div>
-                <div class="test-score">${t.score} / ${t.totalMarks}</div>
-              </div>
-            `;
-          });
-        }
-        document.getElementById('full-test-list-container').innerHTML = html;
+        renderTeacherTestRecords();
         
         // Also update sidebar widget
         let widgetHtml = '';
-        if(data.length === 0) {
+        if(teacherTestRecords.length === 0) {
           widgetHtml = '<p style="font-size:0.9rem;color:var(--text-muted);text-align:center;">No tests recorded yet.</p>';
         } else {
-          data.slice(0, 5).forEach(t => {
+          teacherTestRecords.slice(0, 5).forEach(t => {
              widgetHtml += `
               <div class="test-item">
                 <div>

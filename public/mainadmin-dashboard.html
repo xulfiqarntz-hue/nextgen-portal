@@ -284,6 +284,7 @@
       }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="/admin-portal.css">
 </head>
 <body>
@@ -814,9 +815,14 @@
 
       <!-- TEST RECORDS SECTION -->
       <section id="testrecords" class="section">
-        <h2>Test Records (All)</h2>
+        <header><h3>Test Records</h3></header>
         <div class="card" style="margin-top:20px;">
-          <table style="width:100%; text-align:left; border-collapse:collapse;">
+          <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;">
+            <input id="adminTestRecordsSearch" type="search" placeholder="Search student, teacher, or test..." oninput="renderAdminTestRecords()" style="flex:1;min-width:240px;max-width:460px;padding:10px 12px;border:1px solid var(--input-border);border-radius:9px;background:var(--input-bg);color:var(--input-color);">
+            <button class="button-primary" type="button" onclick="downloadFilteredTestRecordsPDF()">Download Results PDF</button>
+          </div>
+          <div style="overflow-x:auto;">
+          <table class="table" style="width:100%; text-align:left;">
             <thead>
               <tr style="border-bottom: 1px solid var(--border);">
                 <th style="padding:10px;">Date</th>
@@ -824,12 +830,14 @@
                 <th style="padding:10px;">Teacher</th>
                 <th style="padding:10px;">Test Title</th>
                 <th style="padding:10px;">Score</th>
+                <th style="padding:10px;">Action</th>
               </tr>
             </thead>
             <tbody id="adminTestRecordsTable">
-              <tr><td colspan="5" style="padding:10px; text-align:center;">Loading...</td></tr>
+              <tr><td colspan="6" style="padding:10px; text-align:center;">Loading...</td></tr>
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 
@@ -907,7 +915,7 @@
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('name');
     const role = localStorage.getItem('role');
-    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subadmins','add-subadmin','chat','direct-chat','invoices','payslips','attendance', 'profile-settings'];
+    const tabs = ['dashboard','students','add-student','assign','tutors','add-tutor','subadmins','add-subadmin','chat','direct-chat','invoices','payslips','attendance','testrecords','profile-settings'];
 
     let directChatUsers = [];
     let activeDirectChatUser = null;
@@ -999,6 +1007,115 @@
       loadDashboardStats();
       loadDashboardBillingOverview();
       loadAllTestRecords();
+    }
+
+    let adminTestRecords = [];
+
+    function escapeTestRecordHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[character]);
+    }
+
+    function getFilteredTestRecords() {
+      const query = document.getElementById('adminTestRecordsSearch').value.trim().toLowerCase();
+      return adminTestRecords.filter(record => [
+        record.studentId?.name,
+        record.teacherId?.name,
+        record.title
+      ].some(value => String(value || '').toLowerCase().includes(query)));
+    }
+
+    function renderAdminTestRecords() {
+      const body = document.getElementById('adminTestRecordsTable');
+      const records = getFilteredTestRecords();
+      if (!records.length) {
+        const message = adminTestRecords.length ? 'No matching test records.' : 'No test records found.';
+        body.innerHTML = `<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--muted);">${message}</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = records.map(record => `
+        <tr>
+          <td>${escapeTestRecordHtml(new Date(record.createdAt).toLocaleDateString())}</td>
+          <td>${escapeTestRecordHtml(record.studentId?.name || 'Unknown Student')}</td>
+          <td>${escapeTestRecordHtml(record.teacherId?.name || 'Unknown Teacher')}</td>
+          <td>${escapeTestRecordHtml(record.title)}</td>
+          <td>${escapeTestRecordHtml(record.score)} / ${escapeTestRecordHtml(record.totalMarks)}</td>
+          <td><button class="button-secondary" type="button" onclick="downloadTestRecordPDF('${escapeTestRecordHtml(record._id)}')">PDF</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadAllTestRecords() {
+      const body = document.getElementById('adminTestRecordsTable');
+      if (!body) return;
+      try {
+        const res = await fetch('/api/tests/all', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to load test records.');
+        adminTestRecords = Array.isArray(data) ? data : [];
+        renderAdminTestRecords();
+      } catch (err) {
+        body.innerHTML = `<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--danger);">${escapeTestRecordHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function downloadFilteredTestRecordsPDF() {
+      const records = getFilteredTestRecords();
+      if (!records.length) {
+        alert('There are no test records to download.');
+        return;
+      }
+      downloadTestRecordsPDF(records, 'test-records-search-results.pdf');
+    }
+
+    function downloadTestRecordPDF(recordId) {
+      const record = adminTestRecords.find(item => item._id === recordId);
+      if (record) downloadTestRecordsPDF([record], `test-record-${recordId}.pdf`);
+    }
+
+    async function downloadTestRecordsPDF(records, filename) {
+      if (typeof html2pdf !== 'function') {
+        alert('PDF export is unavailable. Refresh the page and try again.');
+        return;
+      }
+
+      const report = document.createElement('div');
+      report.style.cssText = 'position:fixed;left:-10000px;top:0;width:1000px;padding:36px;background:#fff;color:#111827;font-family:Arial,sans-serif;';
+      report.innerHTML = `
+        <h1 style="margin:0 0 6px;color:#1d4ed8;">NextGen eAcademy</h1>
+        <h2 style="margin:0 0 8px;">Test Records</h2>
+        <p style="margin:0 0 20px;color:#64748b;">Generated ${escapeTestRecordHtml(new Date().toLocaleString())} · ${records.length} record(s)</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr>${['Date', 'Student', 'Teacher', 'Test', 'Score'].map(label => `<th style="padding:10px;border:1px solid #cbd5e1;background:#eff6ff;text-align:left;">${label}</th>`).join('')}</tr></thead>
+          <tbody>${records.map(record => `<tr>
+            <td style="padding:9px;border:1px solid #cbd5e1;">${escapeTestRecordHtml(new Date(record.createdAt).toLocaleDateString())}</td>
+            <td style="padding:9px;border:1px solid #cbd5e1;">${escapeTestRecordHtml(record.studentId?.name || 'Unknown Student')}</td>
+            <td style="padding:9px;border:1px solid #cbd5e1;">${escapeTestRecordHtml(record.teacherId?.name || 'Unknown Teacher')}</td>
+            <td style="padding:9px;border:1px solid #cbd5e1;">${escapeTestRecordHtml(record.title)}</td>
+            <td style="padding:9px;border:1px solid #cbd5e1;">${escapeTestRecordHtml(record.score)} / ${escapeTestRecordHtml(record.totalMarks)}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+      document.body.appendChild(report);
+      try {
+        await html2pdf().set({
+          margin: 10,
+          filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        }).from(report).save();
+      } catch (err) {
+        console.error('Test record PDF export failed:', err);
+        alert('Could not generate the PDF. Please try again.');
+      } finally {
+        report.remove();
+      }
     }
 
     async function loadDashboardBillingOverview() {
