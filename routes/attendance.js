@@ -91,6 +91,56 @@ router.get(
   }
 );
 
+router.get(
+  '/student-summaries',
+  verifyToken,
+  allowRoles('teacher'),
+  async (req, res) => {
+    try {
+      const teacher = await User.findById(req.user.id)
+        .populate('assignedStudents', 'name email')
+        .lean();
+      if (!teacher) return res.status(404).json({ error: 'Teacher not found.' });
+
+      const students = teacher.assignedStudents || [];
+      const studentIds = students.map(student => student._id);
+      const records = studentIds.length
+        ? await Attendance.find({ teacher: req.user.id, student: { $in: studentIds } })
+            .select('student status date')
+            .lean()
+        : [];
+
+      const summaries = new Map(students.map(student => [String(student._id), {
+        studentId: String(student._id),
+        name: student.name,
+        email: student.email,
+        total: 0,
+        present: 0,
+        absent: 0,
+        late: 0,
+        lastMarked: null
+      }]));
+
+      records.forEach(record => {
+        const summary = summaries.get(String(record.student));
+        if (!summary) return;
+        summary.total += 1;
+        if (Object.hasOwn(summary, record.status)) summary[record.status] += 1;
+        if (!summary.lastMarked || record.date > summary.lastMarked) summary.lastMarked = record.date;
+      });
+
+      res.json({
+        students: Array.from(summaries.values()).map(summary => ({
+          ...summary,
+          presentPct: summary.total ? Math.round(summary.present / summary.total * 100) : 0
+        }))
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 /* ─────────────────────────────────────────────────────────────────────────
    GET /api/attendance/admin-logs
    Admin / Sub-admin views all attendance records with filters

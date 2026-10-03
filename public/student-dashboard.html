@@ -864,6 +864,7 @@
           <input type="email" id="settings-email" disabled style="background:#f1f5f9;cursor:not-allowed;">
           <small style="color:var(--text-muted)">Contact admin to change email.</small>
         </div>
+        <p id="profile-save-message" role="status" aria-live="polite" style="margin:12px 0;color:var(--text-muted);"></p>
         <button class="btn-primary" onclick="saveSettings()">Save Changes</button>
       </div>
     </div>
@@ -966,23 +967,60 @@
 
     // --- SETTINGS ---
     let newProfilePicBase64 = null;
-    function previewProfilePic(event) {
+    async function previewProfilePic(event) {
       const file = event.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        newProfilePicBase64 = e.target.result;
-        document.getElementById('settings-avatar-preview').src = newProfilePicBase64;
+      const message = document.getElementById('profile-save-message');
+      if (!file.type.startsWith('image/')) {
+        message.textContent = 'Choose an image file.';
+        event.target.value = '';
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        message.textContent = 'Choose an image smaller than 10 MB.';
+        event.target.value = '';
+        return;
+      }
+
+      message.textContent = 'Preparing photo...';
+      try {
+        const objectUrl = URL.createObjectURL(file);
+        const image = new Image();
+        const compressedImage = await new Promise((resolve, reject) => {
+          image.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+            const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+            const context = canvas.getContext('2d');
+            if (!context) return reject(new Error('Could not process the selected image.'));
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.82));
+          };
+          image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Could not read the selected image.'));
+          };
+          image.src = objectUrl;
+        });
+        newProfilePicBase64 = compressedImage;
+        document.getElementById('settings-avatar-preview').src = compressedImage;
         document.getElementById('settings-avatar-preview').style.display = 'block';
         document.getElementById('settings-avatar-fallback').style.display = 'none';
-      };
-      reader.readAsDataURL(file);
+        message.textContent = 'Photo ready. Select Save Changes to apply it.';
+      } catch (err) {
+        newProfilePicBase64 = null;
+        message.textContent = err.message;
+      }
     }
     
     async function saveSettings() {
       const name = document.getElementById('settings-name').value;
       const payload = { name };
       if (newProfilePicBase64) payload.profilePicture = newProfilePicBase64;
+      const message = document.getElementById('profile-save-message');
+      message.textContent = 'Saving profile...';
       
       try {
         const res = await fetch('/api/auth/profile', {
@@ -990,11 +1028,13 @@
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify(payload)
         });
-        if (res.ok) {
-          alert("Profile updated!");
-          location.reload();
-        }
-      } catch (e) { alert("Error saving profile"); }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Profile update failed.');
+        message.textContent = 'Profile updated.';
+        location.reload();
+      } catch (err) {
+        message.textContent = err.message || 'Error saving profile.';
+      }
     }
 
     // --- COURSES ---

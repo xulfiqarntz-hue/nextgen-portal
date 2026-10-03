@@ -355,6 +355,34 @@
       font-size: 0.85rem;
     }
 
+    .student-attendance-panel {
+      margin-top: 24px;
+      padding: 22px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+    }
+    .attendance-report-tools { display: flex; align-items: center; gap: 12px; }
+    .attendance-report-search {
+      width: min(100%, 280px);
+      padding: 9px 12px;
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      background: var(--bg-body);
+      color: var(--text-dark);
+    }
+    .student-attendance-table-wrap { overflow-x: auto; }
+    .student-attendance-table { width: 100%; border-collapse: collapse; min-width: 620px; }
+    .student-attendance-table th,
+    .student-attendance-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-light); text-align: left; }
+    .student-attendance-table th { color: var(--text-muted); font-size: .75rem; text-transform: uppercase; }
+    .student-attendance-table tbody tr:last-child td { border-bottom: 0; }
+    .attendance-rate { display: flex; align-items: center; gap: 10px; min-width: 130px; }
+    .attendance-rate-track { height: 7px; flex: 1; overflow: hidden; border-radius: 99px; background: var(--border-light); }
+    .attendance-rate-fill { height: 100%; border-radius: inherit; background: var(--accent-teal); }
+    .attendance-rate-value { min-width: 38px; color: var(--text-dark); font-weight: 700; }
+    .attendance-report-empty { padding: 22px 10px; color: var(--text-muted); text-align: center; }
+
     /* Attendance Circle */
     .attendance-circle {
       width: 120px;
@@ -591,6 +619,9 @@
       .view-container {
         padding: 16px;
       }
+      .student-attendance-panel { padding: 16px; }
+      .attendance-report-tools { width: 100%; }
+      .attendance-report-search { width: 100%; }
       .table-container {
         overflow-x: auto;
       }
@@ -779,6 +810,28 @@
           
         </div>
       </div>
+
+      <section class="student-attendance-panel" aria-labelledby="student-attendance-heading">
+        <div class="section-header">
+          <div>
+            <h3 id="student-attendance-heading">Student Attendance</h3>
+            <p style="margin-top:5px;color:var(--text-muted);font-size:.85rem;">All recorded sessions for each assigned student</p>
+          </div>
+          <div class="attendance-report-tools">
+            <input id="student-attendance-search" class="attendance-report-search" type="search" placeholder="Search students..." oninput="renderStudentAttendanceSummaries()" aria-label="Search attendance by student">
+          </div>
+        </div>
+        <div class="student-attendance-table-wrap">
+          <table class="student-attendance-table">
+            <thead>
+              <tr><th>Student</th><th>Sessions</th><th>Present</th><th>Absent</th><th>Late</th><th>Attendance</th><th>Last Marked</th></tr>
+            </thead>
+            <tbody id="student-attendance-summary-body">
+              <tr><td colspan="7" class="attendance-report-empty">Loading student attendance...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <!-- 2. Inbox View -->
@@ -935,6 +988,7 @@
           <input type="email" id="settings-email" disabled style="background:#f1f5f9;cursor:not-allowed;">
           <small style="color:var(--text-muted)">Contact admin to change email.</small>
         </div>
+        <p id="profile-save-message" role="status" aria-live="polite" style="margin:12px 0;color:var(--text-muted);"></p>
         <button class="btn-primary" onclick="saveSettings()">Save Changes</button>
       </div>
     </div>
@@ -1023,6 +1077,7 @@
         const studentsData = await studentsRes.json();
         const studentCount = studentsData.students ? studentsData.students.length : 0;
         document.getElementById('stat-students').innerText = studentCount;
+        await loadStudentAttendanceSummaries();
         
         generateCalendar();
         await fetchTimetable();
@@ -1039,23 +1094,60 @@
 
     // --- SETTINGS ---
     let newProfilePicBase64 = null;
-    function previewProfilePic(event) {
+    async function previewProfilePic(event) {
       const file = event.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        newProfilePicBase64 = e.target.result;
-        document.getElementById('settings-avatar-preview').src = newProfilePicBase64;
+      const message = document.getElementById('profile-save-message');
+      if (!file.type.startsWith('image/')) {
+        message.textContent = 'Choose an image file.';
+        event.target.value = '';
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        message.textContent = 'Choose an image smaller than 10 MB.';
+        event.target.value = '';
+        return;
+      }
+
+      message.textContent = 'Preparing photo...';
+      try {
+        const objectUrl = URL.createObjectURL(file);
+        const image = new Image();
+        const compressedImage = await new Promise((resolve, reject) => {
+          image.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+            const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+            const context = canvas.getContext('2d');
+            if (!context) return reject(new Error('Could not process the selected image.'));
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.82));
+          };
+          image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Could not read the selected image.'));
+          };
+          image.src = objectUrl;
+        });
+        newProfilePicBase64 = compressedImage;
+        document.getElementById('settings-avatar-preview').src = compressedImage;
         document.getElementById('settings-avatar-preview').style.display = 'block';
         document.getElementById('settings-avatar-fallback').style.display = 'none';
-      };
-      reader.readAsDataURL(file);
+        message.textContent = 'Photo ready. Select Save Changes to apply it.';
+      } catch (err) {
+        newProfilePicBase64 = null;
+        message.textContent = err.message;
+      }
     }
     
     async function saveSettings() {
       const name = document.getElementById('settings-name').value;
       const payload = { name };
       if (newProfilePicBase64) payload.profilePicture = newProfilePicBase64;
+      const message = document.getElementById('profile-save-message');
+      message.textContent = 'Saving profile...';
       
       try {
         const res = await fetch('/api/auth/profile', {
@@ -1063,11 +1155,13 @@
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify(payload)
         });
-        if (res.ok) {
-          alert("Profile updated!");
-          location.reload();
-        }
-      } catch (e) { alert("Error saving profile"); }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Profile update failed.');
+        message.textContent = 'Profile updated.';
+        location.reload();
+      } catch (err) {
+        message.textContent = err.message || 'Error saving profile.';
+      }
     }
 
     // --- ATTENDANCE (TEACHER) ---
@@ -1129,12 +1223,88 @@
         });
         if(res.ok) {
           alert('Attendance saved successfully');
+          await loadStudentAttendanceSummaries();
           await checkMissingAttendance();
         } else {
           const data = await res.json().catch(() => ({}));
           alert(data.error || 'Failed to save attendance');
         }
       } catch (err) { console.error(err); }
+    }
+
+    let studentAttendanceSummaries = [];
+
+    function renderStudentAttendanceSummaries(message = '') {
+      const body = document.getElementById('student-attendance-summary-body');
+      if (message) {
+        body.innerHTML = `<tr><td colspan="7" class="attendance-report-empty">${message}</td></tr>`;
+        return;
+      }
+
+      const query = document.getElementById('student-attendance-search').value.trim().toLowerCase();
+      const students = studentAttendanceSummaries.filter(student => student.name.toLowerCase().includes(query));
+      if (!students.length) {
+        const emptyMessage = query ? 'No students match your search.' : 'No assigned students found.';
+        body.innerHTML = `<tr><td colspan="7" class="attendance-report-empty">${emptyMessage}</td></tr>`;
+        return;
+      }
+
+      body.replaceChildren();
+      students.forEach(student => {
+        const row = document.createElement('tr');
+        const nameCell = document.createElement('td');
+        nameCell.textContent = student.name;
+        const totalCell = document.createElement('td');
+        totalCell.textContent = student.total;
+        const presentCell = document.createElement('td');
+        presentCell.textContent = student.present;
+        const absentCell = document.createElement('td');
+        absentCell.textContent = student.absent;
+        const lateCell = document.createElement('td');
+        lateCell.textContent = student.late;
+
+        const rateCell = document.createElement('td');
+        const rate = document.createElement('div');
+        rate.className = 'attendance-rate';
+        const track = document.createElement('div');
+        track.className = 'attendance-rate-track';
+        const fill = document.createElement('div');
+        fill.className = 'attendance-rate-fill';
+        fill.style.width = `${student.presentPct}%`;
+        track.appendChild(fill);
+        const percentage = document.createElement('span');
+        percentage.className = 'attendance-rate-value';
+        percentage.textContent = `${student.presentPct}%`;
+        rate.append(track, percentage);
+        rateCell.appendChild(rate);
+
+        const lastMarkedCell = document.createElement('td');
+        if (student.lastMarked) {
+          const [year, month, day] = student.lastMarked.split('-').map(Number);
+          lastMarkedCell.textContent = new Date(year, month - 1, day).toLocaleDateString();
+        } else {
+          lastMarkedCell.textContent = 'Not marked';
+        }
+
+        row.append(nameCell, totalCell, presentCell, absentCell, lateCell, rateCell, lastMarkedCell);
+        body.appendChild(row);
+      });
+    }
+
+    async function loadStudentAttendanceSummaries() {
+      renderStudentAttendanceSummaries('Loading student attendance...');
+      try {
+        const res = await fetch('/api/attendance/student-summaries', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to load attendance report.');
+        studentAttendanceSummaries = Array.isArray(data.students) ? data.students : [];
+        renderStudentAttendanceSummaries();
+      } catch (err) {
+        renderStudentAttendanceSummaries(err.message || 'Unable to load attendance report.');
+        console.error('Student attendance report:', err);
+      }
     }
 
     async function checkMissingAttendance() {
@@ -1217,6 +1387,7 @@
         });
         if(res.ok) {
           alert('Attendance saved successfully');
+          await loadStudentAttendanceSummaries();
           await checkMissingAttendance();
         } else {
           const data = await res.json().catch(() => ({}));
