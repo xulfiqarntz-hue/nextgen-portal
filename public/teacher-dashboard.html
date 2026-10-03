@@ -355,32 +355,26 @@
       font-size: 0.85rem;
     }
 
-    .student-attendance-panel {
-      margin-top: 24px;
-      padding: 22px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-light);
-      border-radius: 16px;
-    }
-    .attendance-report-tools { display: flex; align-items: center; gap: 12px; }
+    .student-attendance-period { margin: -8px 0 14px; color: var(--text-muted); font-size: .8rem; }
+    .attendance-report-tools { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
     .attendance-report-search {
-      width: min(100%, 280px);
-      padding: 9px 12px;
+      width: 100%;
+      padding: 8px 10px;
       border: 1px solid var(--border-light);
-      border-radius: 10px;
+      border-radius: 9px;
       background: var(--bg-body);
       color: var(--text-dark);
     }
-    .student-attendance-table-wrap { overflow-x: auto; }
-    .student-attendance-table { width: 100%; border-collapse: collapse; min-width: 620px; }
-    .student-attendance-table th,
-    .student-attendance-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-light); text-align: left; }
-    .student-attendance-table th { color: var(--text-muted); font-size: .75rem; text-transform: uppercase; }
-    .student-attendance-table tbody tr:last-child td { border-bottom: 0; }
-    .attendance-rate { display: flex; align-items: center; gap: 10px; min-width: 130px; }
-    .attendance-rate-track { height: 7px; flex: 1; overflow: hidden; border-radius: 99px; background: var(--border-light); }
+    .student-attendance-list { display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; }
+    .student-attendance-row { padding: 11px 0; border-bottom: 1px solid var(--border-light); }
+    .student-attendance-row:last-child { border-bottom: 0; }
+    .attendance-student-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .attendance-student-name { min-width: 0; overflow: hidden; color: var(--text-dark); font-size: .9rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .attendance-rate { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+    .attendance-rate-track { height: 6px; flex: 1; overflow: hidden; border-radius: 99px; background: var(--border-light); }
     .attendance-rate-fill { height: 100%; border-radius: inherit; background: var(--accent-teal); }
-    .attendance-rate-value { min-width: 38px; color: var(--text-dark); font-weight: 700; }
+    .attendance-rate-value { min-width: 34px; color: var(--text-dark); font-size: .8rem; font-weight: 700; text-align: right; }
+    .attendance-student-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; color: var(--text-muted); font-size: .72rem; }
     .attendance-report-empty { padding: 22px 10px; color: var(--text-muted); text-align: center; }
 
     /* Attendance Circle */
@@ -619,7 +613,6 @@
       .view-container {
         padding: 16px;
       }
-      .student-attendance-panel { padding: 16px; }
       .attendance-report-tools { width: 100%; }
       .attendance-report-search { width: 100%; }
       .table-container {
@@ -807,31 +800,22 @@
               <p style="font-size:0.9rem;color:var(--text-muted);text-align:center;padding:10px;">No tests recorded yet.</p>
             </div>
           </div>
+
+          <section class="side-widget student-attendance-widget" aria-labelledby="student-attendance-heading">
+            <div class="section-header">
+              <h3 id="student-attendance-heading">Student Attendance</h3>
+            </div>
+            <p id="student-attendance-period" class="student-attendance-period">Current month to date</p>
+            <div class="attendance-report-tools">
+              <input id="student-attendance-search" class="attendance-report-search" type="search" placeholder="Search students..." oninput="renderStudentAttendanceSummaries()" aria-label="Search attendance by student">
+            </div>
+            <div id="student-attendance-summary-list" class="student-attendance-list" aria-live="polite">
+              <p class="attendance-report-empty">Loading attendance...</p>
+            </div>
+          </section>
           
         </div>
       </div>
-
-      <section class="student-attendance-panel" aria-labelledby="student-attendance-heading">
-        <div class="section-header">
-          <div>
-            <h3 id="student-attendance-heading">Student Attendance</h3>
-            <p style="margin-top:5px;color:var(--text-muted);font-size:.85rem;">All recorded sessions for each assigned student</p>
-          </div>
-          <div class="attendance-report-tools">
-            <input id="student-attendance-search" class="attendance-report-search" type="search" placeholder="Search students..." oninput="renderStudentAttendanceSummaries()" aria-label="Search attendance by student">
-          </div>
-        </div>
-        <div class="student-attendance-table-wrap">
-          <table class="student-attendance-table">
-            <thead>
-              <tr><th>Student</th><th>Sessions</th><th>Present</th><th>Absent</th><th>Late</th><th>Attendance</th><th>Last Marked</th></tr>
-            </thead>
-            <tbody id="student-attendance-summary-body">
-              <tr><td colspan="7" class="attendance-report-empty">Loading student attendance...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
     </div>
 
     <!-- 2. Inbox View -->
@@ -1234,10 +1218,16 @@
 
     let studentAttendanceSummaries = [];
 
+    function formatAttendanceDate(dateValue) {
+      if (!dateValue) return '';
+      const [year, month, day] = dateValue.split('-').map(Number);
+      return new Date(year, month - 1, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
     function renderStudentAttendanceSummaries(message = '') {
-      const body = document.getElementById('student-attendance-summary-body');
+      const container = document.getElementById('student-attendance-summary-list');
       if (message) {
-        body.innerHTML = `<tr><td colspan="7" class="attendance-report-empty">${message}</td></tr>`;
+        container.innerHTML = `<p class="attendance-report-empty">${message}</p>`;
         return;
       }
 
@@ -1245,25 +1235,24 @@
       const students = studentAttendanceSummaries.filter(student => student.name.toLowerCase().includes(query));
       if (!students.length) {
         const emptyMessage = query ? 'No students match your search.' : 'No assigned students found.';
-        body.innerHTML = `<tr><td colspan="7" class="attendance-report-empty">${emptyMessage}</td></tr>`;
+        container.innerHTML = `<p class="attendance-report-empty">${emptyMessage}</p>`;
         return;
       }
 
-      body.replaceChildren();
+      container.replaceChildren();
       students.forEach(student => {
-        const row = document.createElement('tr');
-        const nameCell = document.createElement('td');
-        nameCell.textContent = student.name;
-        const totalCell = document.createElement('td');
-        totalCell.textContent = student.total;
-        const presentCell = document.createElement('td');
-        presentCell.textContent = student.present;
-        const absentCell = document.createElement('td');
-        absentCell.textContent = student.absent;
-        const lateCell = document.createElement('td');
-        lateCell.textContent = student.late;
+        const row = document.createElement('article');
+        row.className = 'student-attendance-row';
+        const top = document.createElement('div');
+        top.className = 'attendance-student-top';
+        const name = document.createElement('span');
+        name.className = 'attendance-student-name';
+        name.textContent = student.name;
+        const total = document.createElement('span');
+        total.className = 'test-meta';
+        total.textContent = `${student.total} marked`;
+        top.append(name, total);
 
-        const rateCell = document.createElement('td');
         const rate = document.createElement('div');
         rate.className = 'attendance-rate';
         const track = document.createElement('div');
@@ -1276,18 +1265,17 @@
         percentage.className = 'attendance-rate-value';
         percentage.textContent = `${student.presentPct}%`;
         rate.append(track, percentage);
-        rateCell.appendChild(rate);
 
-        const lastMarkedCell = document.createElement('td');
-        if (student.lastMarked) {
-          const [year, month, day] = student.lastMarked.split('-').map(Number);
-          lastMarkedCell.textContent = new Date(year, month - 1, day).toLocaleDateString();
-        } else {
-          lastMarkedCell.textContent = 'Not marked';
-        }
+        const meta = document.createElement('div');
+        meta.className = 'attendance-student-meta';
+        const statusCounts = document.createElement('span');
+        statusCounts.textContent = `${student.present} present · ${student.absent} absent · ${student.late} late`;
+        const lastMarked = document.createElement('span');
+        lastMarked.textContent = student.lastMarked ? `Last ${formatAttendanceDate(student.lastMarked)}` : 'No sessions marked';
+        meta.append(statusCounts, lastMarked);
 
-        row.append(nameCell, totalCell, presentCell, absentCell, lateCell, rateCell, lastMarkedCell);
-        body.appendChild(row);
+        row.append(top, rate, meta);
+        container.appendChild(row);
       });
     }
 
@@ -1300,6 +1288,11 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Unable to load attendance report.');
         studentAttendanceSummaries = Array.isArray(data.students) ? data.students : [];
+        const period = data.period;
+        if (period) {
+          document.getElementById('student-attendance-period').textContent =
+            `Current month · ${formatAttendanceDate(period.start)}–${formatAttendanceDate(period.end)}`;
+        }
         renderStudentAttendanceSummaries();
       } catch (err) {
         renderStudentAttendanceSummaries(err.message || 'Unable to load attendance report.');

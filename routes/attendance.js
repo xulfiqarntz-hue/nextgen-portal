@@ -104,8 +104,21 @@ router.get(
 
       const students = teacher.assignedStudents || [];
       const studentIds = students.map(student => student._id);
+      const dateParts = new Intl.DateTimeFormat('en', {
+        timeZone: teacher.timezone || 'Asia/Karachi',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(new Date());
+      const dateValues = Object.fromEntries(dateParts.map(part => [part.type, part.value]));
+      const currentDate = `${dateValues.year}-${dateValues.month}-${dateValues.day}`;
+      const monthStart = `${dateValues.year}-${dateValues.month}-01`;
       const records = studentIds.length
-        ? await Attendance.find({ teacher: req.user.id, student: { $in: studentIds } })
+        ? await Attendance.find({
+            teacher: req.user.id,
+            student: { $in: studentIds },
+            date: { $gte: monthStart, $lte: currentDate }
+          })
             .select('student status date')
             .lean()
         : [];
@@ -130,6 +143,7 @@ router.get(
       });
 
       res.json({
+        period: { start: monthStart, end: currentDate },
         students: Array.from(summaries.values()).map(summary => ({
           ...summary,
           presentPct: summary.total ? Math.round(summary.present / summary.total * 100) : 0
