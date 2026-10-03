@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NextGen eAcademy - Login</title>
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NextGen Academy">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/app-icon-180.png">
+  <script src="/pwa-register.js" defer></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -157,6 +164,28 @@
       background: rgba(34, 134, 58, 0.12);
       border: 1px solid rgba(34, 134, 58, 0.2);
     }
+
+    .pwa-install-button {
+      width: 85%;
+      margin-top: 14px;
+      padding: 11px 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .ios-install-hint {
+      width: 85%;
+      margin-top: 10px;
+      color: #475569;
+      font-size: .82rem;
+      line-height: 1.45;
+      text-align: center;
+    }
     
     @media (max-width: 480px) {
       .login-box {
@@ -171,6 +200,8 @@
   <div class="login-container">
     <div class="login-box">
       <img src="/LOGOW.png" alt="NextGen Academy" style="width: 190px; height: auto; max-width: 100%; margin-bottom: 20px; object-fit: contain;">
+      <button id="pwa-install-button" class="pwa-install-button" type="button" hidden>Install app</button>
+      <p id="ios-install-hint" class="ios-install-hint" hidden>To install on iPhone or iPad, tap Share, then choose “Add to Home Screen”.</p>
       <div class="form-group">
         <div class="input-wrapper">
           <input type="email" id="email" placeholder="ID" autocomplete="email">

@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NextGen Admin</title>
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NextGen Academy">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/app-icon-180.png">
+  <script src="/pwa-register.js" defer></script>
   <style>
     :root {
       --bg: #0b1220;
@@ -988,7 +995,6 @@
       const te = window.tutors.map(u => ({...u, role: 'teacher'}));
       const sa = window.subadmins.map(u => ({...u, role: 'subadmin'}));
       directChatUsers = [...st, ...te, ...sa];
-      renderDirectChatList();
 
       document.getElementById('studentCount').innerText = window.students.length;
       document.getElementById('tutorCount').innerText = window.tutors.length;
@@ -1249,6 +1255,7 @@
         populateAttTeacherFilter();
         populateAttStudentSelect();
       }
+      if (tab === 'direct-chat') loadDirectChatUsers();
     }
 
     function openModal(title, items) {
@@ -2436,13 +2443,12 @@
 
     async function loadDirectChatUsers() {
       try {
-        const res = await fetch('/api/all-users', {
+        const res = await fetch('/api/chat-contacts', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await res.json();
-        const students = (data.students || []).map(u => ({...u, role: 'student'}));
-        const teachers = (data.teachers || []).map(u => ({...u, role: 'teacher'}));
-        directChatUsers = [...students, ...teachers];
+        if (!res.ok) throw new Error(data.error || 'Unable to load chat contacts.');
+        directChatUsers = data.users || [];
         renderDirectChatList();
       } catch (err) {
         console.error('Failed to load users for direct chat', err);
@@ -2483,6 +2489,14 @@
         avatar.style.cssText = 'width:40px; height:40px; border-radius:12px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; flex-shrink:0;';
         const initials = u.name.trim().split(/\\s+/).map(p=>p[0]).join('').substring(0,2).toUpperCase();
         avatar.innerText = initials;
+        if (u.profilePicture) {
+          const photo = document.createElement('img');
+          photo.src = u.profilePicture;
+          photo.alt = '';
+          photo.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit;';
+          photo.onerror = () => { avatar.textContent = initials; };
+          avatar.replaceChildren(photo);
+        }
 
         const info = document.createElement('div');
         info.style.flex = '1';

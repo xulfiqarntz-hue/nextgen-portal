@@ -52,7 +52,7 @@ router.post('/deassign', verifyToken, allowRoles('mainadmin', 'subadmin'), async
 
 router.get('/my-students', verifyToken, allowRoles('teacher'), async (req, res) => {
   try {
-    const teacher = await User.findById(req.user.id).populate('assignedStudents', 'name email');
+    const teacher = await User.findById(req.user.id).populate('assignedStudents', 'name email profilePicture');
     res.json({ students: teacher.assignedStudents });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -61,7 +61,7 @@ router.get('/my-students', verifyToken, allowRoles('teacher'), async (req, res) 
 
 router.get('/my-teachers', verifyToken, allowRoles('student'), async (req, res) => {
   try {
-    const student = await User.findById(req.user.id).populate('assignedTeachers', 'name email');
+    const student = await User.findById(req.user.id).populate('assignedTeachers', 'name email profilePicture');
     res.json({ teachers: student.assignedTeachers });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -70,7 +70,7 @@ router.get('/my-teachers', verifyToken, allowRoles('student'), async (req, res) 
 
 router.get('/admins', verifyToken, allowRoles('student', 'teacher'), async (req, res) => {
   try {
-    const admins = await User.find({ role: { $in: ['mainadmin', 'subadmin'] } }, 'name email role');
+    const admins = await User.find({ role: { $in: ['mainadmin', 'subadmin'] } }, 'name email role profilePicture');
     res.json({ admins });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -86,6 +86,20 @@ router.get('/all-users', verifyToken, allowRoles('mainadmin', 'subadmin'), async
       subadmins = await User.find({ role: 'subadmin' }, 'name email');
     }
     res.json({ students, teachers, subadmins });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/chat-contacts', verifyToken, allowRoles('mainadmin', 'subadmin'), async (req, res) => {
+  try {
+    const roles = req.user.role === 'mainadmin'
+      ? ['student', 'teacher', 'subadmin']
+      : ['student', 'teacher'];
+    const users = await User.find({ role: { $in: roles } }, 'name email role profilePicture')
+      .sort({ name: 1 })
+      .lean();
+    res.json({ users });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
