@@ -478,10 +478,12 @@ router.get(
             (classItem.students || []).some(id => idString(id) === idString(student._id))
           )
         : [];
-      const subjectNames = [
-        ...(student.studentDetails || []).map(detail => detail.subjectName),
-        ...studentClasses.map(classItem => classItem.subject || classItem.subjectName)
-      ].filter(Boolean);
+      const enrolledSubjectNames = (student.studentDetails || [])
+        .map(detail => String(detail.subjectName || '').trim())
+        .filter(Boolean);
+      const subjectNames = enrolledSubjectNames.length
+        ? enrolledSubjectNames
+        : studentClasses.map(classItem => classItem.subject || classItem.subjectName).filter(Boolean);
       const subjectsByKey = new Map();
       subjectNames.forEach(name => {
         const label = String(name).trim();
