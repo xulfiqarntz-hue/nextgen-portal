@@ -371,6 +371,27 @@ body {
 
   .sidebar.show-mobile { left: 0; }
 
+  body.menu-open {
+    overflow: hidden;
+  }
+
+  .mobile-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 999;
+    border: none;
+    padding: 0;
+  }
+
+  .mobile-sidebar-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .content { padding: 20px 16px 32px; }
 
   .topbar { align-items: flex-start; gap: 12px; }

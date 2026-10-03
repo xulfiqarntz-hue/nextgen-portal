@@ -222,6 +222,9 @@
     }
 
     @media (max-width: 768px) {
+      body.menu-open {
+        overflow: hidden;
+      }
       .layout {
         grid-template-columns: 1fr;
       }
@@ -230,12 +233,28 @@
         left: -100%;
         top: 0;
         bottom: 0;
-        width: 280px;
+        width: min(280px, 82vw);
         z-index: 1000;
         box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+        transition: left 0.25s ease;
       }
       .sidebar.show-mobile {
         left: 0;
+      }
+      .mobile-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 999;
+        border: none;
+        padding: 0;
+      }
+      .mobile-sidebar-backdrop.visible {
+        opacity: 1;
+        pointer-events: auto;
       }
       .content {
         padding: 16px;
@@ -312,7 +331,7 @@
     <main class="content">
       <div class="topbar">
         <div style="display: flex; align-items: flex-start; gap: 16px;">
-          <button id="mobileMenuBtn" style="display:none; background:none; border:none; cursor:pointer; color: var(--text); padding-top: 6px;" onclick="document.querySelector('.sidebar').classList.toggle('show-mobile')">
+          <button id="mobileMenuBtn" style="display:none; background:none; border:none; cursor:pointer; color: var(--text); padding-top: 6px;" aria-label="Toggle navigation menu">
             <svg fill="currentColor" width="28" height="28" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
           </button>
           <div>
@@ -1881,6 +1900,67 @@
       const saved = localStorage.getItem('ngAdminTheme') || 'light';
       applyTheme(saved);
     })();
+  </script>
+  <script>
+    function toggleMobileSidebar(forceOpen) {
+      const sidebar = document.querySelector('.sidebar');
+      const backdrop = document.getElementById('mobileSidebarBackdrop');
+      const menuBtn = document.getElementById('mobileMenuBtn');
+      if (!sidebar) return;
+      const nextState = typeof forceOpen === 'boolean' ? forceOpen : !sidebar.classList.contains('show-mobile');
+      sidebar.classList.toggle('show-mobile', nextState);
+      document.body.classList.toggle('menu-open', nextState);
+      if (backdrop) {
+        backdrop.classList.toggle('visible', nextState);
+        backdrop.setAttribute('aria-hidden', String(!nextState));
+      }
+      if (menuBtn) menuBtn.setAttribute('aria-expanded', String(nextState));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const sidebar = document.querySelector('.sidebar');
+      const menuBtn = document.getElementById('mobileMenuBtn');
+      if (!sidebar) return;
+
+      let backdrop = document.getElementById('mobileSidebarBackdrop');
+      if (!backdrop) {
+        backdrop = document.createElement('button');
+        backdrop.type = 'button';
+        backdrop.id = 'mobileSidebarBackdrop';
+        backdrop.className = 'mobile-sidebar-backdrop';
+        backdrop.setAttribute('aria-label', 'Close navigation menu');
+        backdrop.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(backdrop);
+      }
+      backdrop.addEventListener('click', function () {
+        toggleMobileSidebar(false);
+      });
+
+      if (menuBtn) {
+        menuBtn.setAttribute('aria-label', 'Toggle navigation menu');
+        menuBtn.setAttribute('aria-expanded', 'false');
+        menuBtn.addEventListener('click', function () {
+          const open = sidebar.classList.contains('show-mobile');
+          toggleMobileSidebar(!open);
+        });
+      }
+
+      sidebar.querySelectorAll('button').forEach(function (element) {
+        element.addEventListener('click', function () {
+          if (window.innerWidth <= 768) {
+            setTimeout(function () {
+              toggleMobileSidebar(false);
+            }, 50);
+          }
+        });
+      });
+
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 768) {
+          toggleMobileSidebar(false);
+        }
+      });
+    });
   </script>
 </body>
 </html>
