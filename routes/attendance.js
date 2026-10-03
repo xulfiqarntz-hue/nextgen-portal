@@ -5,6 +5,45 @@ const Timetable = require('../models/Timetable');
 const { verifyToken, allowRoles } = require('../middleware/auth');
 
 const router = express.Router();
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function idString(value) {
+  return String(value && value._id ? value._id : value || '');
+}
+
+function currentMonthRange(timezone) {
+  let dateParts;
+  try {
+    dateParts = new Intl.DateTimeFormat('en', {
+      timeZone: timezone || 'Asia/Karachi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date());
+  } catch {
+    dateParts = new Intl.DateTimeFormat('en', {
+      timeZone: 'Asia/Karachi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date());
+  }
+  const parts = Object.fromEntries(dateParts.map(part => [part.type, part.value]));
+  const end = `${parts.year}-${parts.month}-${parts.day}`;
+  return { start: `${parts.year}-${parts.month}-01`, end };
+}
+
+function scheduledSubjectsForAttendance(classes, studentId, teacherId, date) {
+  const dayName = DAY_NAMES[new Date(`${date}T00:00:00Z`).getUTCDay()];
+  return [...new Set(classes
+    .filter(classItem =>
+      idString(classItem.teacher) === idString(teacherId) &&
+      (classItem.students || []).some(id => idString(id) === idString(studentId)) &&
+      (classItem.days || []).includes(dayName)
+    )
+    .map(classItem => String(classItem.subject || classItem.subjectName || '').trim())
+    .filter(Boolean))];
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
    POST /api/attendance/submit
@@ -37,21 +76,28 @@ router.post(
 
       const teacherId = req.user.id;
       const now = new Date();
+      const timetable = await Timetable.findOne().lean();
+      const timetableClasses = Array.isArray(timetable?.data?.classes) ? timetable.data.classes : [];
 
       // Upsert each student record atomically
-      const ops = records.map((r) => ({
+      const ops = records.map((r) => {
+        const selectedTopic = String(r.topic || topic || '').trim();
+        const scheduledSubjects = scheduledSubjectsForAttendance(timetableClasses, r.studentId, teacherId, date);
+        const attendanceTopic = selectedTopic || (scheduledSubjects.length === 1 ? scheduledSubjects[0] : '');
+        return ({
         updateOne: {
           filter: { teacher: teacherId, student: r.studentId, date },
           update: {
             $set: {
               status: r.status,
-              topic: topic || '',
+              topic: attendanceTopic,
               submittedAt: now,
             },
           },
           upsert: true,
         },
-      }));
+        });
+      });
 
       await Attendance.bulkWrite(ops);
 
@@ -410,6 +456,87 @@ router.get(
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(csv);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+router.get(
+  '/student-subject-report',
+  verifyToken,
+  allowRoles('student'),
+  async (req, res) => {
+    try {
+      const student = await User.findById(req.user.id, 'name email role timezone studentDetails').lean();
+      if (!student || student.role !== 'student') return res.status(404).json({ error: 'Student not found.' });
+
+      const period = currentMonthRange(student.timezone);
+      const timetable = await Timetable.findOne().lean();
+      const studentClasses = Array.isArray(timetable?.data?.classes)
+        ? timetable.data.classes.filter(classItem =>
+            (classItem.students || []).some(id => idString(id) === idString(student._id))
+          )
+        : [];
+      const subjectNames = [
+        ...(student.studentDetails || []).map(detail => detail.subjectName),
+        ...studentClasses.map(classItem => classItem.subject || classItem.subjectName)
+      ].filter(Boolean);
+      const subjectsByKey = new Map();
+      subjectNames.forEach(name => {
+        const label = String(name).trim();
+        const key = label.toLowerCase();
+        if (key && !subjectsByKey.has(key)) {
+          subjectsByKey.set(key, {
+            subjectName: label,
+            total: 0,
+            present: 0,
+            absent: 0,
+            late: 0,
+            lastMarked: null
+          });
+        }
+      });
+
+      const records = await Attendance.find({
+        student: student._id,
+        date: { $gte: period.start, $lte: period.end }
+      }).select('teacher status date topic').lean();
+
+      let unmatchedRecords = 0;
+      records.forEach(record => {
+        const topicKey = String(record.topic || '').trim().toLowerCase();
+        let summary = topicKey ? subjectsByKey.get(topicKey) : null;
+        if (!summary) {
+          const scheduledSubjects = scheduledSubjectsForAttendance(
+            studentClasses,
+            student._id,
+            record.teacher,
+            record.date
+          );
+          if (scheduledSubjects.length === 1) {
+            summary = subjectsByKey.get(scheduledSubjects[0].toLowerCase());
+          }
+        }
+
+        if (!summary) {
+          unmatchedRecords += 1;
+          return;
+        }
+
+        summary.total += 1;
+        if (Object.hasOwn(summary, record.status)) summary[record.status] += 1;
+        if (!summary.lastMarked || record.date > summary.lastMarked) summary.lastMarked = record.date;
+      });
+
+      res.json({
+        period,
+        unmatchedRecords,
+        subjects: Array.from(subjectsByKey.values()).map(summary => ({
+          ...summary,
+          presentPct: summary.total ? Math.round(summary.present / summary.total * 100) : 0
+        }))
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

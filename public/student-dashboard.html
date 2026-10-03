@@ -332,7 +332,22 @@
       cursor: pointer;
     }
     .cal-day.active { background: var(--primary); color: white; font-weight: bold; }
-    .cal-day.has-event { border: 2px solid var(--primary-light); color: var(--primary); font-weight: 600; }
+    .cal-day.has-event:not(.active) { border: 2px solid var(--primary-light); color: var(--primary); font-weight: 600; }
+    .cal-day.active.has-event { box-shadow: 0 0 0 2px var(--primary-light); }
+    .calendar-legend { margin-top: -10px; margin-bottom: 12px; color: var(--text-muted); font-size: .75rem; }
+
+    .subject-attendance-period { margin: -8px 0 12px; color: var(--text-muted); font-size: .75rem; }
+    .subject-attendance-list { display: flex; flex-direction: column; max-height: 250px; overflow-y: auto; }
+    .subject-attendance-row { padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+    .subject-attendance-row:last-child { border-bottom: 0; }
+    .subject-attendance-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .subject-attendance-name { min-width: 0; overflow: hidden; font-size: .88rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .subject-attendance-rate { color: var(--primary); font-size: .8rem; font-weight: 700; }
+    .subject-attendance-track { height: 6px; margin-top: 7px; overflow: hidden; border-radius: 99px; background: var(--border-light); }
+    .subject-attendance-fill { height: 100%; border-radius: inherit; background: var(--accent-teal); }
+    .subject-attendance-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; color: var(--text-muted); font-size: .7rem; }
+    .subject-attendance-note { margin: 0 0 8px; color: var(--text-muted); font-size: .74rem; line-height: 1.4; }
+    .subject-attendance-empty { padding: 16px 8px; color: var(--text-muted); font-size: .82rem; text-align: center; }
     
     /* Test Record List */
     .test-list { display: flex; flex-direction: column; gap: 12px; }
@@ -743,8 +758,9 @@
           
           <div class="side-widget">
             <div class="section-header">
-              <h3>October 2024</h3>
+              <h3 id="calendar-month-label"></h3>
             </div>
+            <p class="calendar-legend">Outlined dates have scheduled classes</p>
             <div class="calendar-grid">
               <div class="cal-day-header">Su</div><div class="cal-day-header">Mo</div><div class="cal-day-header">Tu</div><div class="cal-day-header">We</div><div class="cal-day-header">Th</div><div class="cal-day-header">Fr</div><div class="cal-day-header">Sa</div>
               <!-- Calendar dynamically generated -->
@@ -764,6 +780,17 @@
             <div class="attendance-stats">
               <div class="att-stat"><div class="att-dot" style="background:var(--accent-teal)"></div> <span id="att-present">0 sessions</span></div>
               <div class="att-stat"><div class="att-dot" style="background:var(--accent-red)"></div> <span id="att-absent">0 sessions</span></div>
+            </div>
+          </div>
+
+          <div class="side-widget" aria-labelledby="subject-attendance-heading">
+            <div class="section-header">
+              <h3 id="subject-attendance-heading">Attendance by Subject</h3>
+            </div>
+            <p id="subject-attendance-period" class="subject-attendance-period">Current month</p>
+            <p id="subject-attendance-note" class="subject-attendance-note" hidden></p>
+            <div id="subject-attendance-list" class="subject-attendance-list" aria-live="polite">
+              <p class="subject-attendance-empty">Loading subject attendance...</p>
             </div>
           </div>
 
@@ -909,6 +936,7 @@
     const token = localStorage.getItem('token');
     const myUserId = localStorage.getItem('userId');
     let currentUser = null;
+    let calendarTimetableClasses = [];
     
     if (!token) window.location.href = '/login.html';
 
@@ -956,6 +984,7 @@
         generateCalendar();
         await fetchTimetable();
         await fetchAttendance();
+        await fetchSubjectAttendance();
         await loadTestRecords();
         
         // Init Chat
@@ -1060,6 +1089,8 @@
       try {
         const res = await fetch('/api/timetable', { headers: { 'Authorization': 'Bearer ' + token }});
         const data = await res.json();
+        calendarTimetableClasses = Array.isArray(data?.classes) ? data.classes : [];
+        generateCalendar();
         
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const todayName = dayNames[new Date().getDay()];
@@ -1145,6 +1176,82 @@
       }
     }
 
+    function formatSubjectAttendanceDate(dateValue) {
+      if (!dateValue) return '';
+      const [year, month, day] = dateValue.split('-').map(Number);
+      return new Date(year, month - 1, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    function renderSubjectAttendance(data) {
+      const list = document.getElementById('subject-attendance-list');
+      const note = document.getElementById('subject-attendance-note');
+      const period = document.getElementById('subject-attendance-period');
+      if (data.period) {
+        period.textContent = `Current month · ${formatSubjectAttendanceDate(data.period.start)}–${formatSubjectAttendanceDate(data.period.end)}`;
+      }
+
+      note.hidden = !data.unmatchedRecords;
+      note.textContent = data.unmatchedRecords
+        ? `${data.unmatchedRecords} saved mark(s) could not be matched to a subject.`
+        : '';
+
+      const subjects = Array.isArray(data.subjects) ? data.subjects : [];
+      if (!subjects.length) {
+        list.innerHTML = '<p class="subject-attendance-empty">No enrolled subjects found.</p>';
+        return;
+      }
+
+      list.replaceChildren();
+      subjects.forEach(subject => {
+        const row = document.createElement('article');
+        row.className = 'subject-attendance-row';
+        const top = document.createElement('div');
+        top.className = 'subject-attendance-top';
+        const name = document.createElement('span');
+        name.className = 'subject-attendance-name';
+        name.textContent = subject.subjectName;
+        const percentage = document.createElement('span');
+        percentage.className = 'subject-attendance-rate';
+        percentage.textContent = `${subject.presentPct}%`;
+        top.append(name, percentage);
+
+        const track = document.createElement('div');
+        track.className = 'subject-attendance-track';
+        const fill = document.createElement('div');
+        fill.className = 'subject-attendance-fill';
+        fill.style.width = `${subject.presentPct}%`;
+        track.appendChild(fill);
+
+        const meta = document.createElement('div');
+        meta.className = 'subject-attendance-meta';
+        const counts = document.createElement('span');
+        counts.textContent = `${subject.present} present · ${subject.absent} absent · ${subject.late} late`;
+        const lastMarked = document.createElement('span');
+        lastMarked.textContent = subject.lastMarked
+          ? `Last ${formatSubjectAttendanceDate(subject.lastMarked)}`
+          : 'No sessions';
+        meta.append(counts, lastMarked);
+        row.append(top, track, meta);
+        list.appendChild(row);
+      });
+    }
+
+    async function fetchSubjectAttendance() {
+      const list = document.getElementById('subject-attendance-list');
+      list.innerHTML = '<p class="subject-attendance-empty">Loading subject attendance...</p>';
+      try {
+        const res = await fetch('/api/attendance/student-subject-report', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to load subject attendance.');
+        renderSubjectAttendance(data);
+      } catch (err) {
+        list.innerHTML = `<p class="subject-attendance-empty">${err.message || 'Unable to load subject attendance.'}</p>`;
+        console.error('Subject attendance report:', err);
+      }
+    }
+
     // --- TEST RECORDS ---
     async function loadTestRecords() {
       try {
@@ -1176,22 +1283,41 @@
     function generateCalendar() {
       const grid = document.querySelector('.calendar-grid');
       const now = new Date();
+      const monthLabel = document.getElementById('calendar-month-label');
+      if (monthLabel) monthLabel.textContent = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
       const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      
-      // Keep headers
-      let html = grid.innerHTML.split('<!-- Calendar dynamically generated -->')[0] + '<!-- Calendar dynamically generated -->';
-      
-      for(let i = 0; i < firstDay; i++) { html += '<div class="cal-day" style="visibility: hidden;"></div>'; }
-      
-      for(let i = 1; i <= daysInMonth; i++) {
-        const isToday = i === now.getDate();
-        // Just mock some dots for visual density based on dates
-        const hasEvent = (i % 5 === 0 || i % 8 === 0) ? 'has-event' : '';
-        const activeClass = isToday ? 'active' : '';
-        html += `<div class="cal-day ${activeClass} ${hasEvent}">${i}</div>`;
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const studentId = String(currentUser?.id || currentUser?._id || myUserId || '');
+      const myClasses = calendarTimetableClasses.filter(classItem =>
+        (classItem.students || []).some(student => String(student?._id || student) === studentId)
+      );
+      const headers = grid.innerHTML.split('<!-- Calendar dynamically generated -->')[0];
+      grid.innerHTML = headers + '<!-- Calendar dynamically generated -->';
+
+      for (let index = 0; index < firstDay; index += 1) {
+        const blankDay = document.createElement('div');
+        blankDay.className = 'cal-day';
+        blankDay.style.visibility = 'hidden';
+        grid.appendChild(blankDay);
       }
-      grid.innerHTML = html;
+
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(now.getFullYear(), now.getMonth(), day);
+        const dayName = dayNames[date.getDay()];
+        const scheduledClasses = myClasses.filter(classItem => classItem.days?.includes(dayName));
+        const dayElement = document.createElement('div');
+        dayElement.className = 'cal-day';
+        dayElement.textContent = day;
+        if (day === now.getDate()) dayElement.classList.add('active');
+        if (scheduledClasses.length) {
+          dayElement.classList.add('has-event');
+          const subjects = scheduledClasses.map(classItem => classItem.subject || 'Class');
+          dayElement.title = `Scheduled: ${subjects.join(', ')}`;
+          dayElement.setAttribute('aria-label', `${now.toLocaleDateString(undefined, { month: 'long' })} ${day}: ${subjects.join(', ')}`);
+        }
+        grid.appendChild(dayElement);
+      }
     }
 
     // --- CHAT / INBOX LOGIC (PORTED FROM ORIGINAL) ---

@@ -332,7 +332,9 @@
       cursor: pointer;
     }
     .cal-day.active { background: var(--primary); color: white; font-weight: bold; }
-    .cal-day.has-event { border: 2px solid var(--primary-light); color: var(--primary); font-weight: 600; }
+    .cal-day.has-event:not(.active) { border: 2px solid var(--primary-light); color: var(--primary); font-weight: 600; }
+    .cal-day.active.has-event { box-shadow: 0 0 0 2px var(--primary-light); }
+    .calendar-legend { margin-top: -10px; margin-bottom: 12px; color: var(--text-muted); font-size: .75rem; }
     
     /* Test Record List */
     .test-list { display: flex; flex-direction: column; gap: 12px; }
@@ -771,8 +773,9 @@
           
           <div class="side-widget">
             <div class="section-header">
-              <h3>October 2024</h3>
+              <h3 id="calendar-month-label"></h3>
             </div>
+            <p class="calendar-legend">Outlined dates have scheduled classes</p>
             <div class="calendar-grid">
               <div class="cal-day-header">Su</div><div class="cal-day-header">Mo</div><div class="cal-day-header">Tu</div><div class="cal-day-header">We</div><div class="cal-day-header">Th</div><div class="cal-day-header">Fr</div><div class="cal-day-header">Sa</div>
               <!-- Calendar dynamically generated -->
@@ -1017,6 +1020,7 @@
     const token = localStorage.getItem('token');
     const myUserId = localStorage.getItem('userId');
     let currentUser = null;
+    let calendarTimetableClasses = [];
     
     if (!token) window.location.href = '/login.html';
 
@@ -1478,6 +1482,8 @@
       try {
         const res = await fetch('/api/timetable', { headers: { 'Authorization': 'Bearer ' + token }});
         const data = await res.json();
+        calendarTimetableClasses = Array.isArray(data?.classes) ? data.classes : [];
+        generateCalendar();
         
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const todayName = dayNames[new Date().getDay()];
@@ -1538,22 +1544,41 @@
     function generateCalendar() {
       const grid = document.querySelector('.calendar-grid');
       const now = new Date();
+      const monthLabel = document.getElementById('calendar-month-label');
+      if (monthLabel) monthLabel.textContent = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
       const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      
-      // Keep headers
-      let html = grid.innerHTML.split('<!-- Calendar dynamically generated -->')[0] + '<!-- Calendar dynamically generated -->';
-      
-      for(let i = 0; i < firstDay; i++) { html += '<div class="cal-day" style="visibility: hidden;"></div>'; }
-      
-      for(let i = 1; i <= daysInMonth; i++) {
-        const isToday = i === now.getDate();
-        // Just mock some dots for visual density based on dates
-        const hasEvent = (i % 5 === 0 || i % 8 === 0) ? 'has-event' : '';
-        const activeClass = isToday ? 'active' : '';
-        html += `<div class="cal-day ${activeClass} ${hasEvent}">${i}</div>`;
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const teacherId = String(currentUser?.id || currentUser?._id || myUserId || '');
+      const myClasses = calendarTimetableClasses.filter(classItem =>
+        String(classItem.teacher?._id || classItem.teacher || '') === teacherId
+      );
+      const headers = grid.innerHTML.split('<!-- Calendar dynamically generated -->')[0];
+      grid.innerHTML = headers + '<!-- Calendar dynamically generated -->';
+
+      for (let index = 0; index < firstDay; index += 1) {
+        const blankDay = document.createElement('div');
+        blankDay.className = 'cal-day';
+        blankDay.style.visibility = 'hidden';
+        grid.appendChild(blankDay);
       }
-      grid.innerHTML = html;
+
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(now.getFullYear(), now.getMonth(), day);
+        const dayName = dayNames[date.getDay()];
+        const scheduledClasses = myClasses.filter(classItem => classItem.days?.includes(dayName));
+        const dayElement = document.createElement('div');
+        dayElement.className = 'cal-day';
+        dayElement.textContent = day;
+        if (day === now.getDate()) dayElement.classList.add('active');
+        if (scheduledClasses.length) {
+          dayElement.classList.add('has-event');
+          const subjects = scheduledClasses.map(classItem => classItem.subject || 'Class');
+          dayElement.title = `Scheduled: ${subjects.join(', ')}`;
+          dayElement.setAttribute('aria-label', `${now.toLocaleDateString(undefined, { month: 'long' })} ${day}: ${subjects.join(', ')}`);
+        }
+        grid.appendChild(dayElement);
+      }
     }
 
     // --- CHAT / INBOX LOGIC (PORTED FROM ORIGINAL) ---
