@@ -616,10 +616,12 @@
         width: min(280px, 82vw);
         z-index: 1000;
         box-shadow: 4px 0 24px rgba(0,0,0,0.1);
-        transition: left 0.25s ease;
+        transition: left 0.25s ease, transform 0.25s ease;
+        transform: translateX(-100%);
       }
       .sidebar.show-mobile {
         left: 0;
+        transform: translateX(0);
       }
       .mobile-sidebar-backdrop {
         position: fixed;
