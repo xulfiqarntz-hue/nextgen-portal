@@ -1144,13 +1144,17 @@
     // --- TIMETABLE ---
     async function fetchTimetable() {
       try {
+        const profileRes = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token }});
+        if (!profileRes.ok) throw new Error('Unable to load student profile timezone');
+        const profile = await profileRes.json();
+        const targetZone = profile.timezone || currentUser.timezone || 'Asia/Karachi';
+
         const res = await fetch('/api/timetable', { headers: { 'Authorization': 'Bearer ' + token }});
         const data = await res.json();
         calendarTimetableClasses = Array.isArray(data?.classes) ? data.classes : [];
         generateCalendar();
         
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const todayName = dayNames[new Date().getDay()];
+        const todayName = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: targetZone }).format(new Date());
         
         let myClasses = [];
         if (data && data.classes) {
@@ -1172,10 +1176,15 @@
           let displayTime = 'TBA';
           if (c.time) {
             try {
-              const targetZone = currentUser.timezone || 'Asia/Karachi';
               const [h, m] = c.time.split(':');
-              const d = new Date();
-              const isoStr = `${d.toISOString().split('T')[0]}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00+05:00`;
+              const sourceDateParts = new Intl.DateTimeFormat('en', {
+                timeZone: 'Asia/Karachi',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).formatToParts(new Date());
+              const sourceDate = Object.fromEntries(sourceDateParts.map(part => [part.type, part.value]));
+              const isoStr = `${sourceDate.year}-${sourceDate.month}-${sourceDate.day}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00+05:00`;
               const exactDate = new Date(isoStr);
               displayTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: targetZone }).format(exactDate);
             } catch(e) { displayTime = c.time; }
