@@ -1142,12 +1142,36 @@
     }
 
     // --- TIMETABLE ---
+    function formatScheduledClassTime(time, timezone) {
+      const match = String(time).trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+      if (!match) throw new Error(`Unsupported timetable time: ${time}`);
+
+      let hour = Number(match[1]);
+      const minute = Number(match[2]);
+      const period = match[3]?.toUpperCase();
+      if (minute > 59 || (period ? hour < 1 || hour > 12 : hour > 23)) {
+        throw new Error(`Invalid timetable time: ${time}`);
+      }
+      if (period) hour = (hour % 12) + (period === 'PM' ? 12 : 0);
+
+      const sourceDateParts = new Intl.DateTimeFormat('en', {
+        timeZone: 'Asia/Karachi',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(new Date());
+      const sourceDate = Object.fromEntries(sourceDateParts.map(part => [part.type, part.value]));
+      const isoStr = `${sourceDate.year}-${sourceDate.month}-${sourceDate.day}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00+05:00`;
+      return new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: timezone
+      }).format(new Date(isoStr));
+    }
+
     async function fetchTimetable() {
       try {
-        const profileRes = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token }});
-        if (!profileRes.ok) throw new Error('Unable to load student profile timezone');
-        const profile = await profileRes.json();
-        const targetZone = profile.timezone || currentUser.timezone || 'Asia/Karachi';
+        const targetZone = currentUser.timezone || 'Asia/Karachi';
 
         const res = await fetch('/api/timetable', { headers: { 'Authorization': 'Bearer ' + token }});
         const data = await res.json();
@@ -1176,18 +1200,11 @@
           let displayTime = 'TBA';
           if (c.time) {
             try {
-              const [h, m] = c.time.split(':');
-              const sourceDateParts = new Intl.DateTimeFormat('en', {
-                timeZone: 'Asia/Karachi',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-              }).formatToParts(new Date());
-              const sourceDate = Object.fromEntries(sourceDateParts.map(part => [part.type, part.value]));
-              const isoStr = `${sourceDate.year}-${sourceDate.month}-${sourceDate.day}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00+05:00`;
-              const exactDate = new Date(isoStr);
-              displayTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: targetZone }).format(exactDate);
-            } catch(e) { displayTime = c.time; }
+              displayTime = formatScheduledClassTime(c.time, targetZone);
+            } catch (error) {
+              console.error('Unable to convert scheduled class time:', error);
+              displayTime = 'Time unavailable';
+            }
           }
           html += `
             <div class="schedule-card">
